@@ -86,8 +86,8 @@ jobs:
       - name: Build APKs
         run: ./gradlew --stacktrace :app:assembleDebug :app:assembleRelease
 
-      - name: Rotate-sign debug APKs for legacy debug users
-        id: rotate_debug
+      - name: Rotate-sign APKs for legacy debug users
+        id: rotate_apks
         shell: bash
         env:
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -133,6 +133,23 @@ jobs:
             --verify-min-sdk 29 \
             --in-place
 
+          ./scripts/signing/rotate_sign_apks.sh \
+            --apk-dir app/build/outputs/apk/release \
+            --out-dir app/build/outputs/apk/legacy-compatible-release \
+            --lineage signing/debug-to-release-lineage.bin \
+            --skip-lineage-create \
+            --old-keystore "${old_keystore}" \
+            --old-alias "${old_alias}" \
+            --old-store-pass "${old_store_pass}" \
+            --old-key-pass "${old_key_pass}" \
+            --new-keystore vFlow.jks \
+            --new-alias "${RELEASE_KEYSTORE_ALIAS}" \
+            --new-store-pass "${RELEASE_KEYSTORE_PASSWORD}" \
+            --new-key-pass "${RELEASE_KEY_PASSWORD}" \
+            --rotation-min-sdk 29 \
+            --verify-min-sdk 29 \
+            --in-place
+
           echo "enabled=true" >> "${GITHUB_OUTPUT}"
 
       - name: Collect release assets
@@ -140,13 +157,13 @@ jobs:
         shell: bash
         run: |
           mkdir -p release-assets
-          if [[ "${{ steps.rotate_debug.outputs.enabled }}" == "true" ]]; then
+          if [[ "${{ steps.rotate_apks.outputs.enabled }}" == "true" ]]; then
             find app/build/outputs/apk/legacy-compatible-debug -type f -name "*.apk" -exec cp "{}" release-assets/ \;
+            find app/build/outputs/apk/legacy-compatible-release -type f -name "*.apk" -exec cp "{}" release-assets/ \;
           else
             find app/build/outputs/apk/debug -type f -name "*.apk" ! -name "*-androidTest.apk" -exec cp "{}" release-assets/ \;
+            find app/build/outputs/apk/release -type f -name "*.apk" -exec cp "{}" release-assets/ \;
           fi
-
-          find app/build/outputs/apk/release -type f -name "*.apk" -exec cp "{}" release-assets/ \;
 
           mapping_path="app/build/outputs/mapping/release/mapping.txt"
           mapping_asset="release-assets/${{ steps.meta.outputs.release_name }}_release_mapping.txt"
