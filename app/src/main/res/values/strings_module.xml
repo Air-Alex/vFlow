@@ -294,6 +294,25 @@
     <string name="error_vflow_system_brightness_set_failed">设置失败</string>
     <string name="msg_vflow_system_brightness_setting">正在设置屏幕亮度为 %d...</string>
 
+    <!-- vflow.system.screen_rotation -->
+    <string name="module_vflow_system_screen_rotation_name">屏幕旋转</string>
+    <string name="module_vflow_system_screen_rotation_desc">控制自动旋转或锁定屏幕方向。</string>
+    <string name="param_vflow_system_screen_rotation_auto_rotate_name">自动旋转</string>
+    <string name="param_vflow_system_screen_rotation_direction_name">屏幕方向</string>
+    <string name="output_vflow_system_screen_rotation_success_name">是否成功</string>
+    <string name="summary_vflow_system_screen_rotation_auto">开启自动旋转</string>
+    <string name="summary_vflow_system_screen_rotation_prefix">锁定屏幕方向为 </string>
+    <string name="msg_vflow_system_screen_rotation_enabling_auto">正在开启自动旋转...</string>
+    <string name="msg_vflow_system_screen_rotation_locking">正在锁定屏幕方向为 %s...</string>
+    <string name="error_vflow_system_screen_rotation_invalid_direction">无效的屏幕方向</string>
+    <string name="error_vflow_system_screen_rotation_invalid_direction_detail">不支持的屏幕方向：%s</string>
+    <string name="error_vflow_system_screen_rotation_failed">设置屏幕旋转失败</string>
+    <string name="error_vflow_system_screen_rotation_failed_detail">发生未知错误</string>
+    <string name="option_vflow_system_screen_rotation_portrait">竖屏</string>
+    <string name="option_vflow_system_screen_rotation_landscape_left">横屏（左）</string>
+    <string name="option_vflow_system_screen_rotation_portrait_upside_down">反向竖屏</string>
+    <string name="option_vflow_system_screen_rotation_landscape_right">横屏（右）</string>
+
     <!-- vflow.system.set_clipboard -->
     <string name="module_vflow_system_set_clipboard_name">写入剪贴板</string>
     <string name="module_vflow_system_set_clipboard_desc">将指定的文本或图片内容写入系统剪贴板</string>

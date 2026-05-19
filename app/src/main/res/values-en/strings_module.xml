@@ -2818,6 +2818,25 @@
     <string name="option_vflow_system_darkmode_light">Light</string>
     <string name="option_vflow_system_darkmode_toggle">Toggle</string>
 
+    <!-- vflow.system.screen_rotation -->
+    <string name="module_vflow_system_screen_rotation_name">Screen Rotation</string>
+    <string name="module_vflow_system_screen_rotation_desc">Control auto-rotate or lock the screen orientation.</string>
+    <string name="param_vflow_system_screen_rotation_auto_rotate_name">Auto Rotate</string>
+    <string name="param_vflow_system_screen_rotation_direction_name">Screen Orientation</string>
+    <string name="output_vflow_system_screen_rotation_success_name">Success</string>
+    <string name="summary_vflow_system_screen_rotation_auto">Enable auto-rotate</string>
+    <string name="summary_vflow_system_screen_rotation_prefix">Lock screen orientation to </string>
+    <string name="msg_vflow_system_screen_rotation_enabling_auto">Enabling auto-rotate...</string>
+    <string name="msg_vflow_system_screen_rotation_locking">Locking screen orientation to %s...</string>
+    <string name="error_vflow_system_screen_rotation_invalid_direction">Invalid screen orientation</string>
+    <string name="error_vflow_system_screen_rotation_invalid_direction_detail">Unsupported screen orientation: %s</string>
+    <string name="error_vflow_system_screen_rotation_failed">Failed to change screen rotation</string>
+    <string name="error_vflow_system_screen_rotation_failed_detail">Unknown error occurred</string>
+    <string name="option_vflow_system_screen_rotation_portrait">Portrait</string>
+    <string name="option_vflow_system_screen_rotation_landscape_left">Landscape Left</string>
+    <string name="option_vflow_system_screen_rotation_portrait_upside_down">Portrait Upside Down</string>
+    <string name="option_vflow_system_screen_rotation_landscape_right">Landscape Right</string>
+
     <!-- vflow.device.vibration -->
     <string name="module_vflow_device_vibration_name">Vibration</string>
     <string name="module_vflow_device_vibration_desc">Trigger device vibration with configurable duration and patterns</string>
