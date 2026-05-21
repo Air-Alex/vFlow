@@ -1117,6 +1117,9 @@
     <string name="content_desc_close">Close</string>
     <string name="content_desc_expand_panel">Expand panel</string>
     <string name="content_desc_minimize">Minimize</string>
+    <string name="workflow_float_status_permission_required">Permission required</string>
+    <string name="workflow_float_hold_to_close">Hold to close</string>
+    <string name="workflow_float_permission_toast">Required permissions are missing. Grant them from the main screen before running this workflow.</string>
 
     <!-- Permissions -->
     <string name="permission_name_core">vFlow Core Service</string>

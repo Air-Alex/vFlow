@@ -1117,6 +1117,9 @@
     <string name="content_desc_close">关闭</string>
     <string name="content_desc_expand_panel">展开面板</string>
     <string name="content_desc_minimize">最小化</string>
+    <string name="workflow_float_status_permission_required">需要权限</string>
+    <string name="workflow_float_hold_to_close">长按以关闭</string>
+    <string name="workflow_float_permission_toast">缺少必要权限，请在主界面授予权限后再执行</string>
 
     <!-- Permissions -->
     <string name="permission_name_core">vFlow Core 服务</string>
