@@ -1543,6 +1543,8 @@
     <string name="param_vflow_interaction_ocr_region_hint">Leave empty for full screen</string>
     <string name="output_vflow_interaction_ocr_success_name">Success</string>
     <string name="output_vflow_interaction_ocr_full_text_name">Recognized Text</string>
+    <string name="output_vflow_interaction_ocr_text_list_name">Text List</string>
+    <string name="output_vflow_interaction_ocr_structured_json_name">Structured JSON</string>
     <string name="output_vflow_interaction_ocr_found_name">Found</string>
     <string name="output_vflow_interaction_ocr_count_name">Count</string>
     <string name="output_vflow_interaction_ocr_first_match_name">First Match (Region)</string>

@@ -1562,6 +1562,8 @@
     <string name="param_vflow_interaction_ocr_region_hint">留空则识别全屏</string>
     <string name="output_vflow_interaction_ocr_success_name">是否成功</string>
     <string name="output_vflow_interaction_ocr_full_text_name">识别到的文字</string>
+    <string name="output_vflow_interaction_ocr_text_list_name">文本列表</string>
+    <string name="output_vflow_interaction_ocr_structured_json_name">结构化 JSON</string>
     <string name="output_vflow_interaction_ocr_found_name">是否找到</string>
     <string name="output_vflow_interaction_ocr_count_name">找到数量</string>
     <string name="output_vflow_interaction_ocr_first_match_name">第一个结果 (区域)</string>

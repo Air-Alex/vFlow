@@ -28,6 +28,7 @@ import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.google.gson.Gson
 import kotlinx.coroutines.tasks.await
 import java.io.IOException
 import kotlin.math.pow
@@ -36,6 +37,7 @@ import kotlin.math.pow
  * "屏幕文字识别 (OCR)" 模块。
  */
 class OCRModule : BaseModule() {
+    private val gson = Gson()
 
     override val id = "vflow.interaction.ocr"
     override val metadata = ActionMetadata(
@@ -213,7 +215,9 @@ class OCRModule : BaseModule() {
         return if (mode == MODE_RECOGNIZE) {
             listOf(
                 OutputDefinition("success", "是否成功", VTypeRegistry.BOOLEAN.id, nameStringRes = R.string.output_vflow_interaction_ocr_success_name),
-                OutputDefinition("full_text", "识别到的文字", VTypeRegistry.STRING.id, nameStringRes = R.string.output_vflow_interaction_ocr_full_text_name)
+                OutputDefinition("full_text", "识别到的文字", VTypeRegistry.STRING.id, nameStringRes = R.string.output_vflow_interaction_ocr_full_text_name),
+                OutputDefinition("text_list", "文本列表", VTypeRegistry.LIST.id, listElementType = VTypeRegistry.STRING.id, nameStringRes = R.string.output_vflow_interaction_ocr_text_list_name),
+                OutputDefinition("structured_json", "结构化 JSON", VTypeRegistry.STRING.id, nameStringRes = R.string.output_vflow_interaction_ocr_structured_json_name)
             )
         } else {
             listOf(
@@ -314,15 +318,18 @@ class OCRModule : BaseModule() {
                 }
 
                 if (mode == MODE_RECOGNIZE) {
-                    val fullText = adjustedItems
+                    val textList = adjustedItems
                         .sortedWith(compareBy<Pair<String, VCoordinateRegion>>({ it.second.top }, { it.second.left }))
                         .map { it.first.trim() }
                         .filter { it.isNotEmpty() }
-                        .joinToString("\n")
+                    val fullText = textList.joinToString("\n")
+                    val structuredJson = buildStructuredJsonFromNativeItems(nativeResult.items, topLeft)
                     onProgress(ProgressUpdate("识别完成，文字长度: ${fullText.length}"))
                     return ExecutionResult.Success(mapOf(
                         "success" to VBoolean(true),
-                        "full_text" to VString(fullText)
+                        "full_text" to VString(fullText),
+                        "text_list" to textList.map { VString(it) },
+                        "structured_json" to VString(structuredJson)
                     ))
                 }
 
@@ -351,10 +358,16 @@ class OCRModule : BaseModule() {
             // 处理结果 - 识别全文模式
             if (mode == MODE_RECOGNIZE) {
                 val fullText = result.text
+                val textList = result.textBlocks
+                    .flatMap { block -> block.lines.map { it.text.trim() } }
+                    .filter { it.isNotEmpty() }
+                val structuredJson = buildStructuredJsonFromMlKitResult(result, topLeft)
                 onProgress(ProgressUpdate("识别完成，文字长度: ${fullText.length}"))
                 return ExecutionResult.Success(mapOf(
                     "success" to VBoolean(true),
-                    "full_text" to VString(fullText)
+                    "full_text" to VString(fullText),
+                    "text_list" to textList.map { VString(it) },
+                    "structured_json" to VString(structuredJson)
                 ))
             }
 
@@ -478,6 +491,96 @@ class OCRModule : BaseModule() {
         }
 
         return item.text to VCoordinateRegion.fromRect(rect)
+    }
+
+    private fun buildStructuredJsonFromNativeItems(
+        items: List<PpOcrV5NativeItem>,
+        topLeft: Pair<Int, Int>?,
+    ): String {
+        val payload = mapOf(
+            "engine" to ENGINE_PP_OCR_V5,
+            "items" to items.map { item ->
+                val adjustedPoints = item.points.map { point ->
+                    mapOf(
+                        "x" to point.x + (topLeft?.first ?: 0),
+                        "y" to point.y + (topLeft?.second ?: 0)
+                    )
+                }
+                val minX = adjustedPoints.minOfOrNull { (it["x"] as Number).toFloat() } ?: item.centerX
+                val minY = adjustedPoints.minOfOrNull { (it["y"] as Number).toFloat() } ?: item.centerY
+                val maxX = adjustedPoints.maxOfOrNull { (it["x"] as Number).toFloat() } ?: item.centerX
+                val maxY = adjustedPoints.maxOfOrNull { (it["y"] as Number).toFloat() } ?: item.centerY
+                mapOf(
+                    "text" to item.text,
+                    "confidence" to item.score,
+                    "orientation" to item.orientation,
+                    "angle" to item.angle,
+                    "center" to mapOf(
+                        "x" to item.centerX + (topLeft?.first ?: 0),
+                        "y" to item.centerY + (topLeft?.second ?: 0)
+                    ),
+                    "size" to mapOf(
+                        "width" to item.width,
+                        "height" to item.height
+                    ),
+                    "bounding_box" to mapOf(
+                        "left" to minX,
+                        "top" to minY,
+                        "right" to maxX,
+                        "bottom" to maxY
+                    ),
+                    "points" to adjustedPoints
+                )
+            }
+        )
+        return gson.toJson(payload)
+    }
+
+    private fun buildStructuredJsonFromMlKitResult(
+        result: Text,
+        topLeft: Pair<Int, Int>?,
+    ): String {
+        val payload = mapOf(
+            "engine" to ENGINE_ML_KIT,
+            "items" to result.textBlocks.flatMap { block ->
+                block.lines.mapNotNull { line ->
+                    val rect = line.boundingBox ?: return@mapNotNull null
+                    val adjustedRect = Rect(
+                        rect.left + (topLeft?.first ?: 0),
+                        rect.top + (topLeft?.second ?: 0),
+                        rect.right + (topLeft?.first ?: 0),
+                        rect.bottom + (topLeft?.second ?: 0)
+                    )
+                    mapOf(
+                        "text" to line.text,
+                        "confidence" to null,
+                        "orientation" to null,
+                        "angle" to null,
+                        "center" to mapOf(
+                            "x" to adjustedRect.centerX(),
+                            "y" to adjustedRect.centerY()
+                        ),
+                        "size" to mapOf(
+                            "width" to adjustedRect.width(),
+                            "height" to adjustedRect.height()
+                        ),
+                        "bounding_box" to mapOf(
+                            "left" to adjustedRect.left,
+                            "top" to adjustedRect.top,
+                            "right" to adjustedRect.right,
+                            "bottom" to adjustedRect.bottom
+                        ),
+                        "points" to listOf(
+                            mapOf("x" to adjustedRect.left, "y" to adjustedRect.top),
+                            mapOf("x" to adjustedRect.right, "y" to adjustedRect.top),
+                            mapOf("x" to adjustedRect.right, "y" to adjustedRect.bottom),
+                            mapOf("x" to adjustedRect.left, "y" to adjustedRect.bottom)
+                        )
+                    )
+                }
+            }
+        )
+        return gson.toJson(payload)
     }
 
     /**
