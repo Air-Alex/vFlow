@@ -138,8 +138,11 @@ internal class WorkflowEditorMagicVariableCatalogBuilder(
                 MagicVariableItem(
                     variableReference = "{{${step.id}.${outputDef.id}}}",
                     variableName = outputDef.getLocalizedName(context),
-                    originDescription = typeDescription(outputDef.typeName),
-                    typeId = outputDef.typeName
+                    originDescription = when {
+                        outputDef.listElementType != null -> typeDescription(outputDef.listElementType)
+                        else -> typeDescription(outputDef.typeName)
+                    },
+                    typeId = outputDef.listElementType ?: outputDef.typeName
                 )
             }
             groupedStepOutputs.getOrPut(groupName) { mutableListOf() }.addAll(items)
@@ -206,8 +209,11 @@ internal class WorkflowEditorMagicVariableCatalogBuilder(
             MagicVariableItem(
                 variableReference = "{{${loopStep.id}.${outputDef.id}}}",
                 variableName = outputDef.getLocalizedName(context),
-                originDescription = typeDescription(outputDef.typeName),
-                typeId = outputDef.typeName
+                originDescription = when {
+                    outputDef.listElementType != null -> typeDescription(outputDef.listElementType)
+                    else -> typeDescription(outputDef.typeName)
+                },
+                typeId = outputDef.listElementType ?: outputDef.typeName
             )
         }
         groupedStepOutputs.getOrPut(groupName) { mutableListOf() }.addAll(items)
@@ -263,7 +269,7 @@ internal class WorkflowEditorMagicVariableCatalogBuilder(
     }
 
     private fun typeDescription(typeId: String): String {
-        return "(${typeId.split('.').last()})"
+        return "(${VTypeRegistry.getType(typeId).getLocalizedName(context)})"
     }
 
     private companion object {

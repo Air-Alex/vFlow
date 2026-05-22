@@ -2,6 +2,7 @@
 package com.chaomixian.vflow.core.types.complex
 
 import android.graphics.Rect
+import com.chaomixian.vflow.R
 import com.chaomixian.vflow.core.types.EnhancedBaseVObject
 import com.chaomixian.vflow.core.types.VTypeRegistry
 import com.chaomixian.vflow.core.types.basic.VBoolean
@@ -72,108 +73,110 @@ data class VScreenElement(
 
     companion object {
         // 属性注册表：所有 VScreenElement 实例共享
-        private val registry = PropertyRegistry().apply {
+        private val registry: PropertyRegistry = PropertyRegistry().apply {
             // === 文本属性 ===
-            register("text", "文本", getter = { host ->
+            register("text", "文本", returnType = VTypeRegistry.STRING, displayName = "文本内容", nameStringRes = R.string.vtype_screen_element_text, getter = { host ->
                 VString((host as VScreenElement).text ?: "")
             })
-            register("content_description", "contentDescription", "content-desc", getter = { host ->
+            register("content_description", "contentDescription", "content-desc", returnType = VTypeRegistry.STRING, displayName = "内容描述", nameStringRes = R.string.vtype_screen_element_content_description, getter = { host ->
                 VString((host as VScreenElement).contentDescription ?: "")
             })
-            register("all_texts", "allTexts", "texts", getter = { host ->
+            register("all_texts", "allTexts", "texts", returnType = VTypeRegistry.LIST, displayName = "所有文本", nameStringRes = R.string.vtype_screen_element_all_texts, getter = { host ->
                 VList((host as VScreenElement).allTexts.map { VString(it) })
             })
 
             // === 标识属性 ===
-            register("id", "viewId", getter = { host ->
+            register("id", "viewId", returnType = VTypeRegistry.STRING, displayName = "控件ID", nameStringRes = R.string.vtype_screen_element_id, getter = { host ->
                 VString((host as VScreenElement).viewId ?: "")
             })
-            register("class", "className", getter = { host ->
+            register("class", "className", returnType = VTypeRegistry.STRING, displayName = "类名", nameStringRes = R.string.vtype_screen_element_class, getter = { host ->
                 VString((host as VScreenElement).className ?: "")
             })
 
             // === 位置属性 ===
-            register("center", "center_point", getter = { host ->
+            register("center", "center_point", returnType = VTypeRegistry.COORDINATE, displayName = "中心点", nameStringRes = R.string.vtype_screen_element_center, getter = { host ->
                 val element = host as VScreenElement
                 VCoordinate(element.centerX, element.centerY)
             })
-            register("region", "bounds", getter = { host ->
+            register("region", "bounds", returnType = VTypeRegistry.COORDINATE_REGION, displayName = "区域", nameStringRes = R.string.vtype_screen_element_region, getter = { host ->
                 val element = host as VScreenElement
                 VCoordinateRegion.fromRect(element.bounds)
             })
-            register("x", "center_x", getter = { host ->
+            register("x", "center_x", returnType = VTypeRegistry.NUMBER, displayName = "中心 X", nameStringRes = R.string.vtype_screen_element_center_x, getter = { host ->
                 VNumber((host as VScreenElement).centerX.toDouble())
             })
-            register("y", "center_y", getter = { host ->
+            register("y", "center_y", returnType = VTypeRegistry.NUMBER, displayName = "中心 Y", nameStringRes = R.string.vtype_screen_element_center_y, getter = { host ->
                 VNumber((host as VScreenElement).centerY.toDouble())
             })
-            register("left", getter = { host ->
+            register("left", returnType = VTypeRegistry.NUMBER, displayName = "左边界", nameStringRes = R.string.vtype_screen_element_left, getter = { host ->
                 VNumber((host as VScreenElement).bounds.left.toDouble())
             })
-            register("top", getter = { host ->
+            register("top", returnType = VTypeRegistry.NUMBER, displayName = "上边界", nameStringRes = R.string.vtype_screen_element_top, getter = { host ->
                 VNumber((host as VScreenElement).bounds.top.toDouble())
             })
-            register("right", getter = { host ->
+            register("right", returnType = VTypeRegistry.NUMBER, displayName = "右边界", nameStringRes = R.string.vtype_screen_element_right, getter = { host ->
                 VNumber((host as VScreenElement).bounds.right.toDouble())
             })
-            register("bottom", getter = { host ->
+            register("bottom", returnType = VTypeRegistry.NUMBER, displayName = "下边界", nameStringRes = R.string.vtype_screen_element_bottom, getter = { host ->
                 VNumber((host as VScreenElement).bounds.bottom.toDouble())
             })
 
             // === 尺寸属性 ===
-            register("width", "w", getter = { host ->
+            register("width", "w", returnType = VTypeRegistry.NUMBER, displayName = "宽度", nameStringRes = R.string.vtype_screen_element_width, getter = { host ->
                 VNumber((host as VScreenElement).width.toDouble())
             })
-            register("height", "h", getter = { host ->
+            register("height", "h", returnType = VTypeRegistry.NUMBER, displayName = "高度", nameStringRes = R.string.vtype_screen_element_height, getter = { host ->
                 VNumber((host as VScreenElement).height.toDouble())
             })
 
             // === 交互状态属性 ===
-            register("clickable", "isClickable", getter = { host ->
+            register("clickable", "isClickable", returnType = VTypeRegistry.BOOLEAN, displayName = "可点击", nameStringRes = R.string.vtype_screen_element_clickable, getter = { host ->
                 VBoolean((host as VScreenElement).isClickable)
             })
-            register("enabled", "isEnabled", getter = { host ->
+            register("enabled", "isEnabled", returnType = VTypeRegistry.BOOLEAN, displayName = "已启用", nameStringRes = R.string.vtype_screen_element_enabled, getter = { host ->
                 VBoolean((host as VScreenElement).isEnabled)
             })
-            register("checkable", "isCheckable", getter = { host ->
+            register("checkable", "isCheckable", returnType = VTypeRegistry.BOOLEAN, displayName = "可勾选", nameStringRes = R.string.vtype_screen_element_checkable, getter = { host ->
                 VBoolean((host as VScreenElement).isCheckable)
             })
-            register("checked", "isChecked", getter = { host ->
+            register("checked", "isChecked", returnType = VTypeRegistry.BOOLEAN, displayName = "已勾选", nameStringRes = R.string.vtype_screen_element_checked, getter = { host ->
                 VBoolean((host as VScreenElement).isChecked)
             })
-            register("focusable", "isFocusable", getter = { host ->
+            register("focusable", "isFocusable", returnType = VTypeRegistry.BOOLEAN, displayName = "可聚焦", getter = { host ->
                 VBoolean((host as VScreenElement).isFocusable)
             })
-            register("focused", "isFocused", getter = { host ->
+            register("focused", "isFocused", returnType = VTypeRegistry.BOOLEAN, displayName = "已聚焦", getter = { host ->
                 VBoolean((host as VScreenElement).isFocused)
             })
-            register("scrollable", "isScrollable", getter = { host ->
+            register("scrollable", "isScrollable", returnType = VTypeRegistry.BOOLEAN, displayName = "可滚动", getter = { host ->
                 VBoolean((host as VScreenElement).isScrollable)
             })
-            register("long_clickable", "isLongClickable", getter = { host ->
+            register("long_clickable", "isLongClickable", returnType = VTypeRegistry.BOOLEAN, displayName = "可长按", getter = { host ->
                 VBoolean((host as VScreenElement).isLongClickable)
             })
-            register("selected", "isSelected", getter = { host ->
+            register("selected", "isSelected", returnType = VTypeRegistry.BOOLEAN, displayName = "已选中", getter = { host ->
                 VBoolean((host as VScreenElement).isSelected)
             })
-            register("editable", "isEditable", getter = { host ->
+            register("editable", "isEditable", returnType = VTypeRegistry.BOOLEAN, displayName = "可编辑", nameStringRes = R.string.vtype_screen_element_editable, getter = { host ->
                 VBoolean((host as VScreenElement).isEditable)
             })
 
             // === 层级属性 ===
-            register("depth", getter = { host ->
+            register("depth", returnType = VTypeRegistry.NUMBER, displayName = "层级", getter = { host ->
                 VNumber((host as VScreenElement).depth.toDouble())
             })
-            register("child_count", "childCount", getter = { host ->
+            register("child_count", "childCount", returnType = VTypeRegistry.NUMBER, displayName = "子节点数量", getter = { host ->
                 VNumber((host as VScreenElement).childCount.toDouble())
             })
 
             // === 其他属性 ===
-            register("accessibility_id", getter = { host ->
+            register("accessibility_id", returnType = VTypeRegistry.NUMBER, displayName = "无障碍节点 ID", getter = { host ->
                 val element = host as VScreenElement
                 VNumber(element.accessibilityId?.toDouble() ?: -1.0)
             })
         }
+
+        fun propertyDefs(): List<com.chaomixian.vflow.core.types.VPropertyDef> = registry.toPropertyDefs()
 
         /**
          * 从 AccessibilityNodeInfo 创建 VScreenElement
