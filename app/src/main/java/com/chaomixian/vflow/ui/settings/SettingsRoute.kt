@@ -255,6 +255,14 @@ fun SettingsRoute(
                     }
                 )
             },
+            onSetDefaultErrorHandlingStrategy = { policy, retryCount, retryIntervalMillis ->
+                settingsViewModel.setDefaultErrorHandlingStrategy(
+                    context,
+                    policy,
+                    retryCount,
+                    retryIntervalMillis
+                )
+            },
             onSetDefaultShellMode = { mode ->
                 settingsViewModel.setDefaultShellMode(context, mode)
             },

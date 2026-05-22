@@ -405,6 +405,8 @@
     <string name="settings_switch_keep_device_awake_during_workflow_desc">When enabled, vFlow automatically acquires a PARTIAL_WAKE_LOCK while a workflow is running, and releases it as soon as the execution finishes, is cancelled, or fails. Disabled by default to reduce background battery drain.</string>
     <string name="settings_switch_hide_from_recents">Hide from Recents</string>
     <string name="settings_switch_hide_from_recents_desc">When enabled, it will not appear in the recent tasks list.</string>
+    <string name="settings_default_error_policy_title">Default Error Handling Strategy</string>
+    <string name="settings_default_error_policy_desc">The default error handling strategy used for newly created modules.</string>
     <string name="settings_toast_hide_from_recents_enabled">Hidden from recents enabled</string>
     <string name="settings_toast_hide_from_recents_disabled">Hidden from recents disabled</string>
     <string name="settings_section_permissions_shell">Permissions &amp; Shell</string>

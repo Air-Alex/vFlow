@@ -55,7 +55,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -73,6 +75,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.chaomixian.vflow.R
+import com.chaomixian.vflow.core.workflow.model.ActionStepExecutionSettings
 import com.chaomixian.vflow.ui.common.SearchBarCard
 import com.chaomixian.vflow.ui.common.SearchEmptyStateCard
 import com.chaomixian.vflow.ui.common.matchesSearch
@@ -101,6 +104,7 @@ data class SettingsScreenActions(
     val onSetAllowPopupKeepScreenOn: (Boolean) -> Unit,
     val onSetKeepDeviceAwakeDuringWorkflow: (Boolean) -> Unit,
     val onSetHideFromRecents: (Boolean) -> Unit,
+    val onSetDefaultErrorHandlingStrategy: (String, Int, Long) -> Unit,
     val onSetDefaultShellMode: (String) -> Unit,
     val onOpenPermissionManager: () -> Unit,
     val onOpenPermissionGuardian: () -> Unit,
@@ -219,6 +223,15 @@ fun SettingsScreen(
     val workflowKeepAwakeInfo = stringResource(R.string.settings_switch_keep_device_awake_during_workflow_desc)
     val hideRecentsTitle = stringResource(R.string.settings_switch_hide_from_recents)
     val hideRecentsSubtitle = stringResource(R.string.settings_switch_hide_from_recents_desc)
+    val defaultErrorStrategyTitle = stringResource(R.string.settings_default_error_policy_title)
+    val defaultErrorStrategySubtitle = stringResource(R.string.settings_default_error_policy_desc)
+    val errorPolicyStopLabel = stringResource(R.string.workflow_action_stop)
+    val errorPolicySkipLabel = stringResource(R.string.dialog_button_skip)
+    val errorPolicyRetryLabel = stringResource(R.string.common_retry)
+    val retryCountLabel = stringResource(R.string.editor_retry_count)
+    val retryCountValueLabel = stringResource(R.string.editor_retry_times, uiState.defaultRetryCount)
+    val retryIntervalLabel = stringResource(R.string.editor_retry_interval)
+    val retryIntervalValueLabel = "${uiState.defaultRetryIntervalMillis} ms"
 
     val shellPreferenceTitle = stringResource(R.string.settings_shell_preference)
     val shellPreferenceSubtitle = stringResource(R.string.settings_shell_preference_desc)
@@ -281,7 +294,11 @@ fun SettingsScreen(
         typeFilterTitle, typeFilterSubtitle, typeFilterInfo,
         popupKeepScreenOnTitle, popupKeepScreenOnSubtitle, popupKeepScreenOnInfo,
         workflowKeepAwakeTitle, workflowKeepAwakeSubtitle, workflowKeepAwakeInfo,
-        hideRecentsTitle, hideRecentsSubtitle
+        hideRecentsTitle, hideRecentsSubtitle,
+        defaultErrorStrategyTitle, defaultErrorStrategySubtitle,
+        errorPolicyStopLabel, errorPolicySkipLabel, errorPolicyRetryLabel,
+        retryCountLabel, retryCountValueLabel,
+        retryIntervalLabel, retryIntervalValueLabel
     ).any { matchesSearch(normalizedQuery, it) }
     val showPermissionsSection = listOf(
         permissionsSectionTitle,
@@ -549,9 +566,25 @@ fun SettingsScreen(
                     subtitle = hideRecentsSubtitle,
                     icon = Icons.Default.VisibilityOff,
                     tone = languageTone(),
-                    position = SettingsGroupPosition.Bottom,
+                    position = SettingsGroupPosition.Middle,
                     checked = uiState.hideFromRecents,
                     onCheckedChange = actions.onSetHideFromRecents
+                )
+                DefaultErrorPolicyRow(
+                    title = defaultErrorStrategyTitle,
+                    subtitle = defaultErrorStrategySubtitle,
+                    icon = Icons.Default.BugReport,
+                    tone = languageTone(),
+                    position = SettingsGroupPosition.Bottom,
+                    policy = uiState.defaultErrorPolicy,
+                    retryCount = uiState.defaultRetryCount,
+                    retryIntervalMillis = uiState.defaultRetryIntervalMillis,
+                    stopLabel = errorPolicyStopLabel,
+                    skipLabel = errorPolicySkipLabel,
+                    retryLabel = errorPolicyRetryLabel,
+                    retryCountLabel = retryCountLabel,
+                    retryIntervalLabel = retryIntervalLabel,
+                    onPolicyChanged = actions.onSetDefaultErrorHandlingStrategy
                 )
             }
         }
@@ -785,6 +818,127 @@ private fun NativeSwitchRow(
                 )
             }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun DefaultErrorPolicyRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    tone: NativeSettingsTone,
+    position: SettingsGroupPosition,
+    policy: String,
+    retryCount: Int,
+    retryIntervalMillis: Long,
+    stopLabel: String,
+    skipLabel: String,
+    retryLabel: String,
+    retryCountLabel: String,
+    retryIntervalLabel: String,
+    onPolicyChanged: (String, Int, Long) -> Unit
+) {
+    var localPolicy by remember(policy) { mutableStateOf(policy) }
+    var localRetryCount by remember(retryCount) { mutableFloatStateOf(retryCount.toFloat()) }
+    var localRetryInterval by remember(retryIntervalMillis) { mutableFloatStateOf(retryIntervalMillis.toFloat()) }
+
+    SettingsItemSurface(position = position) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                NativeIconBadge(
+                    icon = icon,
+                    tone = tone
+                )
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
+            ) {
+                val options = listOf(
+                    ActionStepExecutionSettings.POLICY_STOP to stopLabel,
+                    ActionStepExecutionSettings.POLICY_SKIP to skipLabel,
+                    ActionStepExecutionSettings.POLICY_RETRY to retryLabel
+                )
+                options.forEachIndexed { index, (value, label) ->
+                    ToggleButton(
+                        checked = localPolicy == value,
+                        onCheckedChange = { checked ->
+                            if (checked && localPolicy != value) {
+                                localPolicy = value
+                                onPolicyChanged(value, localRetryCount.toInt(), localRetryInterval.toLong())
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        shapes = when (index) {
+                            0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                            options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                            else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                        }
+                    ) {
+                        Text(label)
+                    }
+                }
+            }
+
+            if (localPolicy == ActionStepExecutionSettings.POLICY_RETRY) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Column {
+                        Text(
+                            text = "$retryCountLabel: ${localRetryCount.toInt()}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Slider(
+                            value = localRetryCount,
+                            onValueChange = {
+                                localRetryCount = it
+                                onPolicyChanged(localPolicy, it.toInt(), localRetryInterval.toLong())
+                            },
+                            valueRange = 1f..10f,
+                            steps = 8
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "$retryIntervalLabel: ${localRetryInterval.toLong()} ms",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Slider(
+                            value = localRetryInterval,
+                            onValueChange = {
+                                localRetryInterval = it
+                                onPolicyChanged(localPolicy, localRetryCount.toInt(), it.toLong())
+                            },
+                            valueRange = 100f..5000f,
+                            steps = 48
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1038,21 +1192,28 @@ private fun ShellModeCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(12.dp))
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
             ) {
                 listOf("shizuku", "root").forEachIndexed { index, mode ->
-                    SegmentedButton(
+                    ToggleButton(
                         modifier = Modifier.weight(1f),
-                        selected = selectedMode == mode,
-                        onClick = { onModeSelected(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = 2),
-                        label = {
-                            Text(
-                                text = if (mode == "root") secondaryLabel else primaryLabel
-                            )
+                        checked = selectedMode == mode,
+                        onCheckedChange = { checked ->
+                            if (checked && selectedMode != mode) {
+                                onModeSelected(mode)
+                            }
+                        },
+                        shapes = when (index) {
+                            0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                            else -> ButtonGroupDefaults.connectedTrailingButtonShapes()
                         }
-                    )
+                    ) {
+                        Text(
+                            text = if (mode == "root") secondaryLabel else primaryLabel
+                        )
+                    }
                 }
             }
         }

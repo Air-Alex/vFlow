@@ -405,6 +405,8 @@
     <string name="settings_switch_keep_device_awake_during_workflow_desc">开启后，工作流执行期间会自动申请 PARTIAL_WAKE_LOCK，并在执行结束、取消或异常时立即释放。默认关闭以减少后台耗电。</string>
     <string name="settings_switch_hide_from_recents">从最近任务中隐藏</string>
     <string name="settings_switch_hide_from_recents_desc">不出现在最近任务列表。</string>
+    <string name="settings_default_error_policy_title">默认异常处理策略</string>
+    <string name="settings_default_error_policy_desc">新建模块时默认使用的异常处理策略。</string>
     <string name="settings_toast_hide_from_recents_enabled">已开启从最近任务中隐藏</string>
     <string name="settings_toast_hide_from_recents_disabled">已关闭从最近任务中隐藏</string>
     <string name="settings_section_permissions_shell">权限与 Shell</string>
