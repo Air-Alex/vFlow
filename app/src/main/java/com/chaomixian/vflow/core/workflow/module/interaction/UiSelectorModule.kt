@@ -61,7 +61,7 @@ class UiSelectorModule : BaseModule() {
             ParameterType.STRING,
             "",
             acceptsMagicVariable = true,
-            supportsRichText = false,
+            supportsRichText = true,
             hint = "如: @TextView[text='设置']",
             nameStringRes = R.string.param_vflow_interaction_ui_selector_selector_name,
             hintStringRes = R.string.hint_vflow_interaction_ui_selector_selector
