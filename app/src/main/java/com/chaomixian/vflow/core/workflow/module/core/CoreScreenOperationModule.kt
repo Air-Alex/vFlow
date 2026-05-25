@@ -13,7 +13,9 @@ import com.chaomixian.vflow.core.types.basic.VNull
 import com.chaomixian.vflow.core.types.basic.VNumber
 import com.chaomixian.vflow.core.types.basic.VString
 import com.chaomixian.vflow.core.types.complex.VCoordinate
+import com.chaomixian.vflow.core.types.complex.VScreenElement
 import com.chaomixian.vflow.core.workflow.model.ActionStep
+import com.chaomixian.vflow.services.ScreenOperationPointerOverlay
 import com.chaomixian.vflow.services.VFlowCoreBridge
 import com.chaomixian.vflow.services.UiInspectorService
 import com.chaomixian.vflow.ui.workflow_editor.PillUtil
@@ -220,6 +222,7 @@ class CoreScreenOperationModule : BaseModule() {
         }
 
         onProgress(ProgressUpdate(appContext.getString(R.string.msg_vflow_core_screen_operation_clicking, target.x, target.y)))
+        ScreenOperationPointerOverlay.notifyTap(context.applicationContext, target.x, target.y)
 
         val success = VFlowCoreBridge.performClick(target.x, target.y)
 
@@ -248,6 +251,7 @@ class CoreScreenOperationModule : BaseModule() {
         val duration = getDuration(context, 1000L)
 
         onProgress(ProgressUpdate(appContext.getString(R.string.msg_vflow_core_screen_operation_long_pressing, target.x, target.y, duration)))
+        ScreenOperationPointerOverlay.notifyLongPress(context.applicationContext, target.x, target.y, duration)
 
         // 使用 swipe 实现长按：起点=终点
         val success = VFlowCoreBridge.performSwipe(
@@ -291,6 +295,14 @@ class CoreScreenOperationModule : BaseModule() {
         val duration = getDuration(context, 500L)
 
         onProgress(ProgressUpdate(appContext.getString(R.string.msg_vflow_core_screen_operation_swiping, start.x, start.y, end.x, end.y, duration)))
+        ScreenOperationPointerOverlay.notifySwipe(
+            context.applicationContext,
+            start.x,
+            start.y,
+            end.x,
+            end.y,
+            duration
+        )
 
         val success = VFlowCoreBridge.performSwipe(
             start.x, start.y,
@@ -333,6 +345,10 @@ class CoreScreenOperationModule : BaseModule() {
         if (value is VCoordinate) {
             DebugLogger.d(TAG, "解析坐标 $paramKey: VCoordinate(${value.x}, ${value.y})")
             return Point(value.x, value.y)
+        }
+        if (value is VScreenElement) {
+            DebugLogger.d(TAG, "解析坐标 $paramKey: VScreenElement(${value.bounds})")
+            return Point(value.bounds.centerX(), value.bounds.centerY())
         }
 
         // 处理 VString 类型（支持字符串 "x,y"）

@@ -19,6 +19,7 @@ import com.chaomixian.vflow.core.types.basic.VString
 import com.chaomixian.vflow.core.types.complex.VCoordinate
 import com.chaomixian.vflow.core.types.complex.VScreenElement
 import com.chaomixian.vflow.permissions.PermissionManager
+import com.chaomixian.vflow.services.ScreenOperationPointerOverlay
 // 为项目内的 AccessibilityService 设置别名，以区分 Android 框架的同名类
 import com.chaomixian.vflow.services.AccessibilityService as VFlowAccessibilityService
 import com.chaomixian.vflow.services.UiInspectorService
@@ -151,10 +152,17 @@ class ClickModule : BaseModule() {
                 val node = findNodeByBounds(service, bounds)
                 var success = false
                 if (node != null) {
+                    ScreenOperationPointerOverlay.notifyTap(appContext, bounds.centerX(), bounds.centerY())
                     success = node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
                     node.recycle()
                 }
-                success || performGestureClick(service, bounds.centerX(), bounds.centerY(), onProgress)
+                success || performGestureClick(
+                    service,
+                    bounds.centerX(),
+                    bounds.centerY(),
+                    onProgress,
+                    showPointer = node == null
+                )
             }
             is VCoordinate -> {
                 onProgress(ProgressUpdate("正在点击坐标: (${target.x}, ${target.y})"))
@@ -219,13 +227,22 @@ class ClickModule : BaseModule() {
             onProgress(ProgressUpdate("视图ID '$viewId' 未找到"))
             return false
         }
+        val bounds = Rect()
+        node.getBoundsInScreen(bounds)
+        if (!bounds.isEmpty) {
+            ScreenOperationPointerOverlay.notifyTap(appContext, bounds.centerX(), bounds.centerY())
+        }
         var clickSuccess = node.performAction(AccessibilityNodeInfo.ACTION_CLICK) // 尝试标准点击
         if (!clickSuccess) { // 如果标准点击失败，尝试手势点击
             onProgress(ProgressUpdate("视图ID '$viewId' ACTION_CLICK 失败，尝试手势点击"))
-            val bounds = Rect()
-            node.getBoundsInScreen(bounds) // 获取节点在屏幕上的边界
             // 在节点中心执行手势点击
-            clickSuccess = performGestureClick(service, bounds.centerX(), bounds.centerY(), onProgress)
+            clickSuccess = performGestureClick(
+                service,
+                bounds.centerX(),
+                bounds.centerY(),
+                onProgress,
+                showPointer = bounds.isEmpty
+            )
         } else {
             onProgress(ProgressUpdate("已通过 ACTION_CLICK 成功点击视图ID '$viewId'"))
         }
@@ -241,11 +258,20 @@ class ClickModule : BaseModule() {
      * @param onProgress 进度更新回调。
      * @return 点击是否成功。
      */
-    private suspend fun performGestureClick(service: VFlowAccessibilityService, x: Int, y: Int, onProgress: suspend (ProgressUpdate) -> Unit): Boolean {
+    private suspend fun performGestureClick(
+        service: VFlowAccessibilityService,
+        x: Int,
+        y: Int,
+        onProgress: suspend (ProgressUpdate) -> Unit,
+        showPointer: Boolean = true
+    ): Boolean {
         // 检查坐标有效性
         if (x < 0 || y < 0) {
             onProgress(ProgressUpdate("手势点击失败：坐标 ($x, $y) 无效"))
             return false
+        }
+        if (showPointer) {
+            ScreenOperationPointerOverlay.notifyTap(appContext, x, y)
         }
         // 创建点击路径和手势描述
         val path = Path().apply { moveTo(x.toFloat(), y.toFloat()) }

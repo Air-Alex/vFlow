@@ -18,10 +18,12 @@ import com.chaomixian.vflow.core.types.basic.VBoolean
 import com.chaomixian.vflow.core.types.basic.VString
 import com.chaomixian.vflow.core.types.basic.VNumber
 import com.chaomixian.vflow.core.types.complex.VCoordinate
+import com.chaomixian.vflow.core.types.complex.VScreenElement
 import com.chaomixian.vflow.core.workflow.model.ActionStep
 import com.chaomixian.vflow.permissions.Permission
 import com.chaomixian.vflow.permissions.PermissionManager
 import com.chaomixian.vflow.services.ServiceStateBus
+import com.chaomixian.vflow.services.ScreenOperationPointerOverlay
 import com.chaomixian.vflow.services.ShellManager
 import com.chaomixian.vflow.services.UiInspectorService
 import com.chaomixian.vflow.ui.workflow_editor.PillUtil
@@ -187,6 +189,28 @@ class ScreenOperationModule : BaseModule() {
                 ?: return ExecutionResult.Failure("无效目标", "无法解析终点位置: $endObj")
         }
 
+        when (opType) {
+            OP_TAP -> ScreenOperationPointerOverlay.notifyTap(
+                context.applicationContext,
+                startPoint.x,
+                startPoint.y
+            )
+            OP_LONG_PRESS -> ScreenOperationPointerOverlay.notifyLongPress(
+                context.applicationContext,
+                startPoint.x,
+                startPoint.y,
+                duration
+            )
+            OP_SWIPE -> ScreenOperationPointerOverlay.notifySwipe(
+                context.applicationContext,
+                startPoint.x,
+                startPoint.y,
+                endPoint!!.x,
+                endPoint.y,
+                duration
+            )
+        }
+
         onProgress(ProgressUpdate("执行 $opType ($mode)..."))
 
         val accService = ServiceStateBus.getAccessibilityService()
@@ -234,6 +258,9 @@ class ScreenOperationModule : BaseModule() {
 
     private fun resolveTargetToPoint(context: ExecutionContext, target: Any?): Point? {
         return when (target) {
+            is VScreenElement -> {
+                Point(target.bounds.centerX(), target.bounds.centerY())
+            }
             is VCoordinate -> {
                 Point(target.x, target.y)
             }

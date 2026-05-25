@@ -21,9 +21,11 @@ import com.chaomixian.vflow.core.types.basic.VBoolean
 import com.chaomixian.vflow.core.types.basic.VNull
 import com.chaomixian.vflow.core.types.basic.VString
 import com.chaomixian.vflow.core.types.complex.VCoordinate
+import com.chaomixian.vflow.core.types.complex.VScreenElement
 import com.chaomixian.vflow.core.workflow.model.ActionStep
 import com.chaomixian.vflow.permissions.Permission
 import com.chaomixian.vflow.permissions.PermissionManager
+import com.chaomixian.vflow.services.ScreenOperationPointerOverlay
 import com.chaomixian.vflow.services.UiInspectorService
 import com.chaomixian.vflow.services.VFlowCoreBridge
 import com.chaomixian.vflow.ui.workflow_editor.PillUtil
@@ -222,6 +224,7 @@ class CoreUinputScreenOperationModule : BaseModule() {
             ?: return invalidCoordinateFailure(context, "target")
 
         onProgress(ProgressUpdate(appContext.getString(R.string.msg_vflow_core_uinput_screen_operation_clicking, target.x, target.y)))
+        ScreenOperationPointerOverlay.notifyTap(context.applicationContext, target.x, target.y)
         val result = VFlowCoreBridge.performUinputTap(target.x, target.y)
 
         return if (result.success) {
@@ -247,6 +250,7 @@ class CoreUinputScreenOperationModule : BaseModule() {
         val duration = getDuration(context, 1000L)
 
         onProgress(ProgressUpdate(appContext.getString(R.string.msg_vflow_core_uinput_screen_operation_long_pressing, target.x, target.y, duration)))
+        ScreenOperationPointerOverlay.notifyLongPress(context.applicationContext, target.x, target.y, duration)
         val result = VFlowCoreBridge.performUinputLongPress(target.x, target.y, duration)
 
         return if (result.success) {
@@ -274,6 +278,14 @@ class CoreUinputScreenOperationModule : BaseModule() {
         val duration = getDuration(context, 500L)
 
         onProgress(ProgressUpdate(appContext.getString(R.string.msg_vflow_core_uinput_screen_operation_swiping, start.x, start.y, end.x, end.y, duration)))
+        ScreenOperationPointerOverlay.notifySwipe(
+            context.applicationContext,
+            start.x,
+            start.y,
+            end.x,
+            end.y,
+            duration
+        )
         val result = VFlowCoreBridge.performUinputSwipe(start.x, start.y, end.x, end.y, duration)
 
         return if (result.success) {
@@ -319,6 +331,9 @@ class CoreUinputScreenOperationModule : BaseModule() {
         }
         if (value is VCoordinate) {
             return Point(value.x, value.y)
+        }
+        if (value is VScreenElement) {
+            return Point(value.bounds.centerX(), value.bounds.centerY())
         }
         if (value is VString) {
             return parseStringToCoordinate(VariableResolver.resolve(value.asString(), context))

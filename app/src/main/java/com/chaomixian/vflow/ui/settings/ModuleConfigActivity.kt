@@ -14,7 +14,13 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -23,6 +29,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -42,6 +50,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleButton
@@ -58,19 +67,25 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import com.chaomixian.vflow.R
 import com.chaomixian.vflow.integration.feishu.FeishuModuleConfig
 import com.chaomixian.vflow.integration.feishu.FeishuOAuthManager
 import com.chaomixian.vflow.services.TriggerServiceProxy
+import com.chaomixian.vflow.services.ScreenOperationPointerOverlay
 import com.chaomixian.vflow.speech.SherpaNcnnDownloadSource
 import com.chaomixian.vflow.speech.SherpaNcnnModelManager
 import com.chaomixian.vflow.speech.SherpaNcnnModelProgress
@@ -95,12 +110,15 @@ class ModuleConfigActivity : BaseActivity() {
         const val SECTION_VOICE_TRIGGER = "voice_trigger"
         const val SECTION_SHERPA = "sherpa"
         const val SECTION_FEISHU = "feishu"
+        const val SECTION_SCREEN_OPERATION = "screen_operation"
         const val PREFS_NAME = "module_config_prefs"
         const val KEY_BACKTAP_SENSITIVITY = "backtap_sensitivity"
         const val KEY_APP_START_CLOSE_CHECK_DELAY = "app_start_close_check_delay"
         const val KEY_APP_START_VERIFICATION_DELAY = "app_start_verification_delay"
         const val KEY_APP_START_MIN_CHECK_INTERVAL = "app_start_min_check_interval"
         const val KEY_NETWORK_PROXY = "network_proxy"
+        const val KEY_SCREEN_OPERATION_POINTER_ENABLED = "screen_operation_pointer_enabled"
+        const val KEY_SCREEN_OPERATION_POINTER_STYLE = "screen_operation_pointer_style"
         const val KEY_FEISHU_APP_ID = "feishu_app_id"
         const val KEY_FEISHU_APP_SECRET = "feishu_app_secret"
         const val KEY_FEISHU_APP_ACCESS_TOKEN = "feishu_app_access_token"
@@ -159,6 +177,12 @@ class ModuleConfigActivity : BaseActivity() {
         fun readAppStartMinCheckInterval(prefs: android.content.SharedPreferences): Long {
             return prefs.getLong(KEY_APP_START_MIN_CHECK_INTERVAL, DEFAULT_APP_START_MIN_CHECK_INTERVAL)
                 .coerceIn(MIN_APP_START_MIN_CHECK_INTERVAL, MAX_APP_START_MIN_CHECK_INTERVAL)
+        }
+
+        fun readScreenOperationPointerStyle(prefs: android.content.SharedPreferences): String {
+            val style = prefs.getString(KEY_SCREEN_OPERATION_POINTER_STYLE, null)
+            return style?.takeIf { it in ScreenOperationPointerOverlay.styleOptions }
+                ?: ScreenOperationPointerOverlay.DEFAULT_STYLE
         }
 
         fun createIntent(context: Context, initialSection: String? = null): Intent {
@@ -222,6 +246,14 @@ fun ModuleConfigScreen(initialSection: String? = null, onBack: () -> Unit) {
         mutableStateOf(
             prefs.getString(ModuleConfigActivity.KEY_NETWORK_PROXY, "").orEmpty()
         )
+    }
+    var screenOperationPointerEnabled by remember {
+        mutableStateOf(
+            prefs.getBoolean(ModuleConfigActivity.KEY_SCREEN_OPERATION_POINTER_ENABLED, false)
+        )
+    }
+    var screenOperationPointerStyle by remember {
+        mutableStateOf(ModuleConfigActivity.readScreenOperationPointerStyle(prefs))
     }
     var userAuthStatusVersion by remember { mutableIntStateOf(0) }
     val authUiState by FeishuOAuthManager.authState.collectAsState()
@@ -1304,6 +1336,130 @@ fun ModuleConfigScreen(initialSection: String? = null, onBack: () -> Unit) {
                 }
             }
 
+            val renderScreenOperationSection: @Composable () -> Unit = {
+                ModuleConfigSection(title = stringResource(R.string.module_config_section_screen_operation)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.module_config_screen_operation_pointer_enabled),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = stringResource(R.string.module_config_screen_operation_pointer_enabled_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = screenOperationPointerEnabled,
+                                onCheckedChange = { enabled ->
+                                    screenOperationPointerEnabled = enabled
+                                    prefs.edit {
+                                        putBoolean(
+                                            ModuleConfigActivity.KEY_SCREEN_OPERATION_POINTER_ENABLED,
+                                            enabled
+                                        )
+                                    }
+                                }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Text(
+                            text = stringResource(R.string.module_config_screen_operation_pointer_style),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ScreenOperationPointerPreview(
+                                style = screenOperationPointerStyle,
+                                enabled = screenOperationPointerEnabled
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = screenOperationPointerStyleLabel(screenOperationPointerStyle),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (screenOperationPointerEnabled) {
+                                        MaterialTheme.colorScheme.onSurface
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = stringResource(R.string.module_config_screen_operation_pointer_preview_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            val styleItems = listOf(
+                                ScreenOperationPointerOverlay.STYLE_STANDARD to stringResource(R.string.module_config_screen_operation_pointer_style_standard_short),
+                                ScreenOperationPointerOverlay.STYLE_STANDARD_WHITE to stringResource(R.string.module_config_screen_operation_pointer_style_standard_white_short),
+                                ScreenOperationPointerOverlay.STYLE_GENSHIN to stringResource(R.string.module_config_screen_operation_pointer_style_genshin_short),
+                                ScreenOperationPointerOverlay.STYLE_NAHIDA to stringResource(R.string.module_config_screen_operation_pointer_style_nahida_short),
+                                ScreenOperationPointerOverlay.STYLE_FURINA to stringResource(R.string.module_config_screen_operation_pointer_style_furina_short),
+                                ScreenOperationPointerOverlay.STYLE_BTR_AHOGE to stringResource(R.string.module_config_screen_operation_pointer_style_btr_ahoge_short),
+                                ScreenOperationPointerOverlay.STYLE_SILENT_WITCH to stringResource(R.string.module_config_screen_operation_pointer_style_silent_witch_short),
+                            )
+                            styleItems.forEach { (style, label) ->
+                                ScreenOperationPointerStyleChip(
+                                    style = style,
+                                    label = label,
+                                    selected = screenOperationPointerStyle == style,
+                                    enabled = screenOperationPointerEnabled,
+                                    onSelected = {
+                                        screenOperationPointerStyle = style
+                                        prefs.edit {
+                                            putString(
+                                                ModuleConfigActivity.KEY_SCREEN_OPERATION_POINTER_STYLE,
+                                                screenOperationPointerStyle
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.module_config_screen_operation_pointer_credit),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             val renderFeishuSection: @Composable () -> Unit = {
                 ModuleConfigSection(title = stringResource(R.string.module_config_section_feishu)) {
                     Column(
@@ -1490,6 +1646,7 @@ fun ModuleConfigScreen(initialSection: String? = null, onBack: () -> Unit) {
 
             renderBacktapSection()
             renderAppStartSection()
+            renderScreenOperationSection()
             renderVoiceTriggerSection()
             renderSherpaSection()
 
@@ -1540,6 +1697,7 @@ fun ModuleConfigScreen(initialSection: String? = null, onBack: () -> Unit) {
         if (scrollState.maxValue > 0) {
             when (initialSection) {
                 ModuleConfigActivity.SECTION_APP_START -> scrollState.animateScrollTo(scrollState.maxValue / 6)
+                ModuleConfigActivity.SECTION_SCREEN_OPERATION -> scrollState.animateScrollTo(scrollState.maxValue / 4)
                 ModuleConfigActivity.SECTION_VOICE_TRIGGER -> scrollState.animateScrollTo((scrollState.maxValue * 2) / 5)
                 ModuleConfigActivity.SECTION_SHERPA -> scrollState.animateScrollTo((scrollState.maxValue * 3) / 5)
                 ModuleConfigActivity.SECTION_FEISHU -> scrollState.animateScrollTo(scrollState.maxValue)
@@ -1598,6 +1756,122 @@ private fun SherpaSourceButton(
         modifier = modifier,
     ) {
         Text(text)
+    }
+}
+
+@Composable
+private fun ScreenOperationPointerPreview(
+    style: String,
+    enabled: Boolean
+) {
+    Box(
+        modifier = Modifier
+            .size(72.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant,
+                shape = RoundedCornerShape(8.dp)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(54.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 0.18f else 0.08f))
+        )
+        Image(
+            painter = painterResource(screenOperationPointerStyleRes(style)),
+            contentDescription = null,
+            modifier = Modifier
+                .size(48.dp)
+                .graphicsLayer {
+                    translationX = 5.dp.toPx()
+                    translationY = 3.dp.toPx()
+                },
+            alpha = if (enabled) 1f else 0.38f
+        )
+    }
+}
+
+@Composable
+private fun ScreenOperationPointerStyleChip(
+    style: String,
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onSelected: () -> Unit
+) {
+    val shape = RoundedCornerShape(8.dp)
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outlineVariant
+    }
+    val containerColor = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    Row(
+        modifier = Modifier
+            .width(92.dp)
+            .clip(shape)
+            .background(containerColor.copy(alpha = if (enabled) 1f else 0.45f))
+            .border(1.dp, borderColor.copy(alpha = if (enabled) 1f else 0.38f), shape)
+            .clickable(enabled = enabled, onClick = onSelected)
+            .padding(horizontal = 8.dp, vertical = 8.dp)
+            .semantics { role = Role.RadioButton },
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            painter = painterResource(screenOperationPointerStyleRes(style)),
+            contentDescription = null,
+            modifier = Modifier
+                .size(22.dp)
+                .graphicsLayer {
+                    translationX = 2.dp.toPx()
+                    translationY = 1.dp.toPx()
+                },
+            alpha = if (enabled) 1f else 0.38f
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (selected) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            maxLines = 1
+        )
+    }
+}
+
+private fun screenOperationPointerStyleRes(style: String): Int {
+    return when (style) {
+        ScreenOperationPointerOverlay.STYLE_STANDARD_WHITE -> R.drawable.stmc_cursor_standard_white
+        ScreenOperationPointerOverlay.STYLE_GENSHIN -> R.drawable.stmc_cursor_genshin
+        ScreenOperationPointerOverlay.STYLE_NAHIDA -> R.drawable.stmc_cursor_nahida
+        ScreenOperationPointerOverlay.STYLE_FURINA -> R.drawable.stmc_cursor_furina
+        ScreenOperationPointerOverlay.STYLE_BTR_AHOGE -> R.drawable.stmc_cursor_btr_ahoge
+        ScreenOperationPointerOverlay.STYLE_SILENT_WITCH -> R.drawable.stmc_cursor_silent_witch
+        else -> R.drawable.stmc_cursor_standard
+    }
+}
+
+private fun screenOperationPointerStyleLabel(style: String): String {
+    return when (style) {
+        ScreenOperationPointerOverlay.STYLE_STANDARD_WHITE -> "Sam Toki Standard White"
+        ScreenOperationPointerOverlay.STYLE_GENSHIN -> "Sam Toki Genshin"
+        ScreenOperationPointerOverlay.STYLE_NAHIDA -> "Sam Toki Nahida"
+        ScreenOperationPointerOverlay.STYLE_FURINA -> "Sam Toki Furina"
+        ScreenOperationPointerOverlay.STYLE_BTR_AHOGE -> "Sam Toki BTR Ahoge"
+        ScreenOperationPointerOverlay.STYLE_SILENT_WITCH -> "Sam Toki Silent Witch"
+        else -> "Sam Toki Standard"
     }
 }
 
