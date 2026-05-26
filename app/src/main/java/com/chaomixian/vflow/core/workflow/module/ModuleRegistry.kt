@@ -132,6 +132,7 @@ object ModuleRegistry {
         register(ModifyVariableModule(), context)
         register(GetVariableModule(), context)
         register(CalculationModule(), context)
+        register(MathExpressionModule(), context)
         register(TextProcessingModule(), context)
         register(TextSplitModule(), context)
         register(TextReplaceModule(), context)

@@ -198,6 +198,9 @@ dependencies {
     // Rhino JavaScript 引擎
     implementation("org.mozilla:rhino:1.9.0")
 
+    // 数学表达式求值
+    implementation("com.notkamui.libs:keval:2.0.0")
+
     // Shizuku API
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")

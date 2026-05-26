@@ -9,6 +9,7 @@ import com.chaomixian.vflow.core.types.VTypeRegistry
 import com.chaomixian.vflow.core.types.basic.VNull
 import com.chaomixian.vflow.core.types.basic.VNumber
 import com.chaomixian.vflow.core.types.basic.VString
+import com.chaomixian.vflow.core.types.parser.VariablePathParser
 import com.chaomixian.vflow.core.workflow.model.ActionStep
 import com.chaomixian.vflow.ui.workflow_editor.PillUtil
 import java.math.BigDecimal
@@ -18,6 +19,13 @@ import java.math.RoundingMode
  * 计算模块，用于执行两个数字之间的基本数学运算。
  */
 class CalculationModule : BaseModule() {
+    companion object {
+        private const val INPUT_OPERAND1 = "operand1"
+        private const val INPUT_OPERATOR = "operator"
+        private const val INPUT_OPERAND2 = "operand2"
+        private const val INPUT_ASSIGN_TO = "assignTo"
+        private const val OUTPUT_RESULT = "result"
+    }
 
     // 模块的唯一标识符
     override val id = "vflow.data.calculation"
@@ -37,11 +45,12 @@ class CalculationModule : BaseModule() {
         riskLevel = AiModuleRiskLevel.READ_ONLY,
         workflowStepDescription = "Perform arithmetic on two numeric operands.",
         inputHints = mapOf(
-            "operand1" to "First numeric operand.",
-            "operator" to "Arithmetic operator such as +, -, *, /, or %.",
-            "operand2" to "Second numeric operand.",
+            INPUT_OPERAND1 to "First numeric operand.",
+            INPUT_OPERATOR to "Arithmetic operator such as +, -, *, /, or %.",
+            INPUT_OPERAND2 to "Second numeric operand.",
+            INPUT_ASSIGN_TO to "Optional named/global variable reference to receive the result.",
         ),
-        requiredInputIds = setOf("operand1", "operator", "operand2"),
+        requiredInputIds = setOf(INPUT_OPERAND1, INPUT_OPERATOR, INPUT_OPERAND2),
     )
 
     /**
@@ -49,7 +58,7 @@ class CalculationModule : BaseModule() {
      */
     override fun getInputs(): List<InputDefinition> = listOf(
         InputDefinition(
-            id = "operand1",
+            id = INPUT_OPERAND1,
             name = "数字1",
             nameStringRes = R.string.param_vflow_data_calculation_operand1_name,
             // 将类型从 NUMBER 改为 STRING，以同时接受数字字面量和变量引用字符串
@@ -59,7 +68,7 @@ class CalculationModule : BaseModule() {
             defaultValue = "0" // 默认值也改为字符串
         ),
         InputDefinition(
-            id = "operator",
+            id = INPUT_OPERATOR,
             name = "符号",
             nameStringRes = R.string.param_vflow_data_calculation_operator_name,
             staticType = ParameterType.ENUM,
@@ -68,7 +77,7 @@ class CalculationModule : BaseModule() {
             acceptsMagicVariable = false
         ),
         InputDefinition(
-            id = "operand2",
+            id = INPUT_OPERAND2,
             name = "数字2",
             nameStringRes = R.string.param_vflow_data_calculation_operand2_name,
             // 为了支持命名变量，将类型从 NUMBER 改为 STRING
@@ -76,6 +85,16 @@ class CalculationModule : BaseModule() {
             acceptsMagicVariable = true,
             acceptedMagicVariableTypes = setOf(VTypeRegistry.NUMBER.id),
             defaultValue = "0" // 默认值也改为字符串
+        ),
+        InputDefinition(
+            id = INPUT_ASSIGN_TO,
+            name = "赋值给",
+            nameStringRes = R.string.param_vflow_data_calculation_assign_to_name,
+            staticType = ParameterType.STRING,
+            defaultValue = "",
+            acceptsMagicVariable = false,
+            acceptsNamedVariable = true,
+            isFolded = true
         )
     )
 
@@ -84,7 +103,7 @@ class CalculationModule : BaseModule() {
      */
     override fun getOutputs(step: ActionStep?): List<OutputDefinition> = listOf(
         OutputDefinition(
-            id = "result",
+            id = OUTPUT_RESULT,
             name = "结果",
             typeName = VTypeRegistry.NUMBER.id,
             nameStringRes = R.string.output_vflow_data_calculation_result_name
@@ -98,9 +117,9 @@ class CalculationModule : BaseModule() {
         context: ExecutionContext,
         onProgress: suspend (ProgressUpdate) -> Unit
     ): ExecutionResult {
-        val operand1Value = context.getVariable("operand1")
-        val operator = context.getVariableAsString("operator", "+")
-        val operand2Value = context.getVariable("operand2")
+        val operand1Value = context.getVariable(INPUT_OPERAND1)
+        val operator = context.getVariableAsString(INPUT_OPERATOR, "+")
+        val operand2Value = context.getVariable(INPUT_OPERAND2)
 
         val num1 = convertToBigDecimal(operand1Value)
         val num2 = convertToBigDecimal(operand2Value)
@@ -152,7 +171,9 @@ class CalculationModule : BaseModule() {
                 String.format(appContext.getString(R.string.error_vflow_data_calculation_invalid_operator), operator)
             )
         }
-        return ExecutionResult.Success(mapOf("result" to VNumber(resultValue.toDouble())))
+        val result = VNumber(resultValue.toDouble())
+        assignResultIfRequested(context, result)
+        return ExecutionResult.Success(mapOf(OUTPUT_RESULT to result))
     }
 
     /**
@@ -178,6 +199,32 @@ class CalculationModule : BaseModule() {
         else -> value?.toString() ?: "null"
     }
 
+    private fun assignResultIfRequested(context: ExecutionContext, result: VNumber) {
+        val variableRef = (context.getParameterRaw(INPUT_ASSIGN_TO)
+            ?: context.getVariableAsString(INPUT_ASSIGN_TO, ""))
+            .trim()
+        if (variableRef.isEmpty()) return
+
+        val namedVariablePath = VariablePathParser.parseNamedVariablePath(variableRef)
+        val globalVariablePath = VariablePathParser.parseGlobalVariablePath(variableRef)
+        val plainGlobalVariableName = variableRef
+            .removePrefix("${VariablePathParser.GLOBAL_VARIABLE_NAMESPACE}.")
+            .takeIf {
+                variableRef.startsWith("${VariablePathParser.GLOBAL_VARIABLE_NAMESPACE}.") && it.isNotBlank()
+            }
+
+        val variableName = namedVariablePath?.firstOrNull()
+            ?: globalVariablePath?.firstOrNull()
+            ?: plainGlobalVariableName
+            ?: return
+
+        if (globalVariablePath != null || plainGlobalVariableName != null) {
+            context.setGlobalVariable(variableName, result)
+        } else {
+            context.setVariable(variableName, result)
+        }
+    }
+
     /**
      * 验证模块参数的有效性。
      */
@@ -197,17 +244,17 @@ class CalculationModule : BaseModule() {
         val inputs = getInputs()
 
         val pillOperand1 = PillUtil.createPillFromParam(
-            step.parameters["operand1"],
-            inputs.find { it.id == "operand1" }
+            step.parameters[INPUT_OPERAND1],
+            inputs.find { it.id == INPUT_OPERAND1 }
         )
         val pillOperator = PillUtil.createPillFromParam(
-            step.parameters["operator"],
-            inputs.find { it.id == "operator" },
+            step.parameters[INPUT_OPERATOR],
+            inputs.find { it.id == INPUT_OPERATOR },
             isModuleOption = true
         )
         val pillOperand2 = PillUtil.createPillFromParam(
-            step.parameters["operand2"],
-            inputs.find { it.id == "operand2" }
+            step.parameters[INPUT_OPERAND2],
+            inputs.find { it.id == INPUT_OPERAND2 }
         )
 
         val summaryPrefix = context.getString(R.string.summary_vflow_data_calculation_prefix)

@@ -1148,6 +1148,7 @@
     <string name="param_vflow_data_calculation_operand1_name">数字1</string>
     <string name="param_vflow_data_calculation_operator_name">符号</string>
     <string name="param_vflow_data_calculation_operand2_name">数字2</string>
+    <string name="param_vflow_data_calculation_assign_to_name">赋值给</string>
     <string name="output_vflow_data_calculation_result_name">结果</string>
     <string name="summary_vflow_data_calculation_prefix">计算 </string>
     <string name="error_vflow_data_calculation_input_error">输入错误</string>
@@ -1158,6 +1159,19 @@
     <string name="error_vflow_data_calculation_division_failed">除法计算时发生错误: %s</string>
     <string name="error_vflow_data_calculation_calculation_error">计算错误</string>
     <string name="error_vflow_data_calculation_invalid_operator">无效的运算符: %s</string>
+
+    <!-- vflow.data.math_expression -->
+    <string name="module_vflow_data_math_expression_name">数学表达式</string>
+    <string name="module_vflow_data_math_expression_desc">使用 Keval 计算数学表达式，支持函数、常量和富文本变量。</string>
+    <string name="param_vflow_data_math_expression_expression_name">表达式</string>
+    <string name="param_vflow_data_math_expression_assign_to_name">赋值给</string>
+    <string name="hint_vflow_data_math_expression_expression">如：sqrt(16) + (2+3)(6+4)</string>
+    <string name="output_vflow_data_math_expression_result_name">结果</string>
+    <string name="summary_vflow_data_math_expression_prefix">计算表达式 </string>
+    <string name="error_vflow_data_math_expression_input_error">输入错误</string>
+    <string name="error_vflow_data_math_expression_empty">表达式不能为空</string>
+    <string name="error_vflow_data_math_expression_eval_error">表达式计算失败</string>
+    <string name="error_vflow_data_math_expression_eval_failed">无法计算表达式</string>
 
     <!-- vflow.data.base64 -->
     <string name="module_vflow_data_base64_name">Base64 编解码</string>

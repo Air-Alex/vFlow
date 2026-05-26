@@ -1129,6 +1129,7 @@
     <string name="param_vflow_data_calculation_operand1_name">Number 1</string>
     <string name="param_vflow_data_calculation_operator_name">Operator</string>
     <string name="param_vflow_data_calculation_operand2_name">Number 2</string>
+    <string name="param_vflow_data_calculation_assign_to_name">Assign To</string>
     <string name="output_vflow_data_calculation_result_name">Result</string>
     <string name="summary_vflow_data_calculation_prefix">Calculate</string>
     <string name="error_vflow_data_calculation_input_error">Input Error</string>
@@ -1139,6 +1140,19 @@
     <string name="error_vflow_data_calculation_division_failed">Error during division: %s</string>
     <string name="error_vflow_data_calculation_calculation_error">Calculation Error</string>
     <string name="error_vflow_data_calculation_invalid_operator">Invalid operator: %s</string>
+
+    <!-- vflow.data.math_expression -->
+    <string name="module_vflow_data_math_expression_name">Math Expression</string>
+    <string name="module_vflow_data_math_expression_desc">Evaluate math expressions with Keval, including functions, constants, and rich-text variables.</string>
+    <string name="param_vflow_data_math_expression_expression_name">Expression</string>
+    <string name="param_vflow_data_math_expression_assign_to_name">Assign To</string>
+    <string name="hint_vflow_data_math_expression_expression">Example: sqrt(16) + (2+3)(6+4)</string>
+    <string name="output_vflow_data_math_expression_result_name">Result</string>
+    <string name="summary_vflow_data_math_expression_prefix">Evaluate expression </string>
+    <string name="error_vflow_data_math_expression_input_error">Input Error</string>
+    <string name="error_vflow_data_math_expression_empty">Expression cannot be empty</string>
+    <string name="error_vflow_data_math_expression_eval_error">Expression Evaluation Failed</string>
+    <string name="error_vflow_data_math_expression_eval_failed">Unable to evaluate expression</string>
 
     <!-- vflow.data.base64 -->
     <string name="module_vflow_data_base64_name">Base64 Encode/Decode</string>
