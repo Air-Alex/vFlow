@@ -728,6 +728,7 @@
     <string name="button_close">Close</string>
     <string name="label_parameter_name">Parameter Name</string>
     <string name="desc_select_variable">Select Variable</string>
+    <string name="action_add_variable">Add Variable</string>
     <string name="button_download">Download</string>
     <string name="button_install_module">Install Module</string>
     <string name="label_module_name">Module Name</string>

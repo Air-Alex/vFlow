@@ -9,7 +9,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.core.widget.NestedScrollView
 import com.chaomixian.vflow.R
 import com.chaomixian.vflow.core.module.*
 import com.chaomixian.vflow.core.workflow.model.ActionStepExecutionSettings
@@ -46,6 +49,11 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
     private var genericInputsContainer: LinearLayout? = null
     private var editorActionsCard: MaterialCardView? = null
     private var editorActionsContainer: LinearLayout? = null
+    private var actionEditorScroll: NestedScrollView? = null
+    private var keyboardToolbar: View? = null
+    private var focusedToolbarInputId: String? = null
+    private var isKeyboardVisible: Boolean = false
+    private var baseScrollPaddingBottom: Int = 0
 
     // 异常处理 UI 组件
     private var errorSettingsContent: LinearLayout? = null
@@ -115,6 +123,10 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
         genericInputsContainer = view.findViewById(R.id.container_generic_inputs)
         editorActionsCard = view.findViewById(R.id.card_editor_actions)
         editorActionsContainer = view.findViewById(R.id.container_editor_actions)
+        actionEditorScroll = view.findViewById(R.id.action_editor_scroll)
+        keyboardToolbar = view.findViewById(R.id.keyboard_toolbar)
+        baseScrollPaddingBottom = actionEditorScroll?.paddingBottom ?: 0
+        setupKeyboardToolbar(view)
 
         // 绑定错误处理容器
         errorSettingsContent = view.findViewById(R.id.container_execution_settings_content)
@@ -160,6 +172,38 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
             }
         }
         return view
+    }
+
+    private fun setupKeyboardToolbar(rootView: View) {
+        val toolbar = keyboardToolbar ?: return
+        val variableButton = toolbar.findViewById<MaterialButton>(R.id.button_keyboard_toolbar_variable)
+        variableButton.setOnClickListener {
+            val inputId = focusedToolbarInputId ?: focusedInputId ?: return@setOnClickListener
+            requestMagicVariableSelection(inputId)
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
+            isKeyboardVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+            updateKeyboardToolbarVisibility()
+            insets
+        }
+        ViewCompat.requestApplyInsets(rootView)
+    }
+
+    private fun updateKeyboardToolbarVisibility() {
+        val toolbar = keyboardToolbar ?: return
+        val scroll = actionEditorScroll ?: return
+        val shouldShow = isKeyboardVisible && focusedToolbarInputId != null
+
+        toolbar.translationY = 0f
+        toolbar.isVisible = shouldShow
+        val toolbarSpace = if (shouldShow) toolbar.height.takeIf { it > 0 } ?: (48 * resources.displayMetrics.density).toInt() else 0
+        scroll.setPadding(
+            scroll.paddingLeft,
+            scroll.paddingTop,
+            scroll.paddingRight,
+            baseScrollPaddingBottom + toolbarSpace
+        )
     }
 
     /**
@@ -365,6 +409,7 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
                 onStartActivityForResult = onStartActivityForResult
             )
             customUiContainer?.addView(customEditorHolder!!.view)
+            bindKeyboardToolbarFocus(customEditorHolder!!.view)
         }
 
         customUiCard?.isVisible = uiModel.showCustomUi
@@ -629,7 +674,72 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
             }
         ).also { row ->
             bindImmediateDynamicInputUpdates(row, inputDef)
+            bindKeyboardToolbarFocus(row, inputDef)
         }
+    }
+
+    private fun bindKeyboardToolbarFocus(row: View, inputDef: InputDefinition) {
+        if (!inputDef.acceptsMagicVariable && !inputDef.acceptsNamedVariable && !inputDef.supportsRichText) {
+            return
+        }
+        findDescendantTextInputs(row).forEach { editText ->
+            bindKeyboardToolbarFocus(editText, inputDef.id, row)
+        }
+    }
+
+    private fun bindKeyboardToolbarFocus(root: View) {
+        findDescendantTextInputs(root).forEach { editText ->
+            val inputId = editText.tag as? String ?: return@forEach
+            val inputDef = findDynamicInputDefinition(inputId) ?: return@forEach
+            if (!inputDef.acceptsMagicVariable && !inputDef.acceptsNamedVariable && !inputDef.supportsRichText) {
+                return@forEach
+            }
+            bindKeyboardToolbarFocus(editText, inputId, root)
+        }
+    }
+
+    private fun bindKeyboardToolbarFocus(
+        editText: com.google.android.material.textfield.TextInputEditText,
+        inputId: String,
+        scope: View
+    ) {
+        editText.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                focusedToolbarInputId = inputId
+            } else if (focusedToolbarInputId == inputId && !hasFocusedTextInput(scope)) {
+                focusedToolbarInputId = null
+            }
+            updateKeyboardToolbarVisibility()
+        }
+        editText.setOnClickListener {
+            focusedToolbarInputId = inputId
+            updateKeyboardToolbarVisibility()
+        }
+    }
+
+    private fun findDescendantTextInputs(root: View): List<com.google.android.material.textfield.TextInputEditText> {
+        val result = mutableListOf<com.google.android.material.textfield.TextInputEditText>()
+        collectDescendantTextInputs(root, result)
+        return result
+    }
+
+    private fun collectDescendantTextInputs(
+        view: View,
+        result: MutableList<com.google.android.material.textfield.TextInputEditText>
+    ) {
+        if (view is com.google.android.material.textfield.TextInputEditText) {
+            result.add(view)
+        }
+        if (view !is ViewGroup) {
+            return
+        }
+        for (index in 0 until view.childCount) {
+            collectDescendantTextInputs(view.getChildAt(index), result)
+        }
+    }
+
+    private fun hasFocusedTextInput(root: View): Boolean {
+        return findDescendantTextInputs(root).any { it.hasFocus() }
     }
 
     private fun bindImmediateDynamicInputUpdates(row: View, inputDef: InputDefinition) {

@@ -728,6 +728,7 @@
     <string name="button_close">关闭</string>
     <string name="label_parameter_name">参数名称</string>
     <string name="desc_select_variable">选择变量</string>
+    <string name="action_add_variable">添加变量</string>
     <string name="button_download">下载</string>
     <string name="button_install_module">安装模块</string>
     <string name="label_module_name">模块名称</string>
