@@ -47,6 +47,42 @@ class TextProcessingModuleTest {
         assertEquals(listOf("123"), output.raw.map { it.asString() })
     }
 
+    @Test
+    fun executeRegex_returnsAllExtractedGroups() = runBlocking {
+        val module = TextProcessingModule()
+        val context = createContext(
+            sourceText = "A123B C45D",
+            pattern = "([A-Z])(\\d+)([A-Z])",
+            group = 2
+        )
+
+        val result = module.execute(context) { }
+
+        assertTrue(result is ExecutionResult.Success)
+        val outputs = (result as ExecutionResult.Success).outputs
+        val selectedGroupOutput = outputs["result_list"] as VList
+        val allGroupsOutput = outputs["all_groups"] as VList
+        assertEquals(listOf("123", "45"), selectedGroupOutput.raw.map { it.asString() })
+        assertEquals(
+            listOf("A123B", "A", "123", "B", "C45D", "C", "45", "D"),
+            allGroupsOutput.raw.map { it.asString() }
+        )
+    }
+
+    @Test
+    fun regexOperation_exposesAllGroupsOutputDefinition() {
+        val module = TextProcessingModule()
+        val step = com.chaomixian.vflow.core.workflow.model.ActionStep(
+            moduleId = TextProcessingModule().id,
+            parameters = mapOf("operation" to TextProcessingModule.OP_REGEX)
+        )
+
+        val outputs = module.getDynamicOutputs(step, emptyList())
+
+        assertTrue(outputs.any { it.id == "result_list" })
+        assertTrue(outputs.any { it.id == "all_groups" })
+    }
+
     private fun createContext(
         sourceText: String,
         pattern: String,

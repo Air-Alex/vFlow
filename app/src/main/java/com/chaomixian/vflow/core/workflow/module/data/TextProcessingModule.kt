@@ -82,7 +82,11 @@ class TextProcessingModule : BaseModule() {
         val operation = operationInput.normalizeEnumValue(rawOperation) ?: rawOperation
         return when (operation) {
             OP_JOIN, OP_REPLACE -> listOf(OutputDefinition("result_text", "结果文本", VTypeRegistry.STRING.id, nameStringRes = R.string.output_vflow_data_text_processing_result_text_name))
-            OP_SPLIT, OP_REGEX -> listOf(OutputDefinition("result_list", "结果列表", VTypeRegistry.LIST.id, listElementType = VTypeRegistry.STRING.id, nameStringRes = R.string.output_vflow_data_text_processing_result_list_name))
+            OP_SPLIT -> listOf(OutputDefinition("result_list", "结果列表", VTypeRegistry.LIST.id, listElementType = VTypeRegistry.STRING.id, nameStringRes = R.string.output_vflow_data_text_processing_result_list_name))
+            OP_REGEX -> listOf(
+                OutputDefinition("result_list", "结果列表", VTypeRegistry.LIST.id, listElementType = VTypeRegistry.STRING.id, nameStringRes = R.string.output_vflow_data_text_processing_result_list_name),
+                OutputDefinition("all_groups", "所有提取组", VTypeRegistry.LIST.id, listElementType = VTypeRegistry.STRING.id, nameStringRes = R.string.output_vflow_data_text_processing_all_groups_name)
+            )
             else -> emptyList()
         }
     }
@@ -239,12 +243,21 @@ class TextProcessingModule : BaseModule() {
             val pattern = Pattern.compile(patternStr)
             val matcher = pattern.matcher(source)
             val results = mutableListOf<String>()
+            val allGroups = mutableListOf<String>()
             while (matcher.find()) {
                 if (group <= matcher.groupCount()) {
                     matcher.group(group)?.let { results.add(it) }
                 }
+                for (groupIndex in 0..matcher.groupCount()) {
+                    matcher.group(groupIndex)?.let { allGroups.add(it) }
+                }
             }
-            return ExecutionResult.Success(mapOf("result_list" to VList(results.map { VString(it) })))
+            return ExecutionResult.Success(
+                mapOf(
+                    "result_list" to VList(results.map { VString(it) }),
+                    "all_groups" to VList(allGroups.map { VString(it) })
+                )
+            )
         } catch (e: Exception) {
             return ExecutionResult.Failure(appContext.getString(R.string.error_vflow_data_text_processing_regex_error), e.localizedMessage ?: appContext.getString(R.string.error_vflow_data_text_processing_regex_error))
         }

@@ -1084,6 +1084,7 @@
     <string name="param_vflow_data_text_processing_regex_group_name">提取组号（0=匹配项，1起=子匹配项）</string>
     <string name="output_vflow_data_text_processing_result_text_name">结果文本</string>
     <string name="output_vflow_data_text_processing_result_list_name">结果列表</string>
+    <string name="output_vflow_data_text_processing_all_groups_name">所有提取组</string>
     <string name="summary_vflow_data_text_processing_join_prefix">拼接: 将列表 </string>
     <string name="summary_vflow_data_text_processing_join_middle"> 用 </string>
     <string name="summary_vflow_data_text_processing_join_suffix"> 连接</string>
