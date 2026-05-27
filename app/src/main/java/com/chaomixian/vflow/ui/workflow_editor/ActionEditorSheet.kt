@@ -36,6 +36,17 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
     private var allSteps: ArrayList<ActionStep>? = null
     var onSave: ((ActionStep) -> Unit)? = null
     var onMagicVariableRequested: ((inputId: String, currentParameters: Map<String, Any?>) -> Unit)? = null
+    var onInlineScriptVariableRequested: ((
+        inputId: String,
+        currentParameters: Map<String, Any?>,
+        targetSheet: InlineScriptEditorSheet
+    ) -> Unit)? = null
+    var onVariablePillEditRequested: ((
+        inputId: String,
+        currentParameters: Map<String, Any?>,
+        currentReference: String,
+        onUpdated: (String?) -> Unit
+    ) -> Unit)? = null
     var onStartActivityForResult: ((Intent, (resultCode: Int, data: Intent?) -> Unit) -> Unit)? = null
     private val inputViews = mutableMapOf<String, View>()
     private var customEditorHolder: CustomEditorViewHolder? = null
@@ -99,6 +110,12 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
         }
         // 然后用步骤已有的参数覆盖默认值
         existingStep?.parameters?.let { currentParameters.putAll(it) }
+    }
+
+    override fun onDestroyView() {
+        customEditorHolder?.onDestroy()
+        customEditorHolder = null
+        super.onDestroyView()
     }
 
     fun setOnPickerRequestedListener(listener: (InputDefinition) -> Unit) {
@@ -181,6 +198,13 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
             val inputId = focusedToolbarInputId ?: focusedInputId ?: return@setOnClickListener
             requestMagicVariableSelection(inputId)
         }
+        val scriptButton = toolbar.findViewById<MaterialButton>(R.id.button_keyboard_toolbar_script)
+        scriptButton.setOnClickListener {
+            val inputId = focusedToolbarInputId ?: focusedInputId ?: return@setOnClickListener
+            showInlineScriptEditor(initialScript = "", targetInputId = inputId) { script ->
+                insertInlineScriptIntoInput(inputId, script)
+            }
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
             isKeyboardVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
@@ -192,11 +216,20 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
 
     private fun updateKeyboardToolbarVisibility() {
         val toolbar = keyboardToolbar ?: return
+        val inputDef = focusedToolbarInputDefinition()
         val scroll = actionEditorScroll ?: return
-        val shouldShow = isKeyboardVisible && focusedToolbarInputId != null
+        val canInsertVariable = inputDef?.let { it.acceptsMagicVariable || it.acceptsNamedVariable } == true
+        val canInsertScript = inputDef?.allowsInlineScript == true
+        val shouldShow = isKeyboardVisible &&
+            focusedToolbarInputId != null &&
+            (canInsertVariable || canInsertScript)
 
         toolbar.translationY = 0f
         toolbar.isVisible = shouldShow
+        toolbar.findViewById<MaterialButton>(R.id.button_keyboard_toolbar_variable)?.isVisible =
+            canInsertVariable
+        toolbar.findViewById<MaterialButton>(R.id.button_keyboard_toolbar_script)?.isVisible =
+            canInsertScript
         val toolbarSpace = if (shouldShow) toolbar.height.takeIf { it > 0 } ?: (48 * resources.displayMetrics.density).toInt() else 0
         scroll.setPadding(
             scroll.paddingLeft,
@@ -204,6 +237,35 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
             scroll.paddingRight,
             baseScrollPaddingBottom + toolbarSpace
         )
+    }
+
+    private fun focusedToolbarInputDefinition(): InputDefinition? {
+        val inputId = focusedToolbarInputId ?: focusedInputId ?: return null
+        return findDynamicInputDefinition(inputId)
+    }
+
+    private fun showInlineScriptEditor(
+        initialScript: String,
+        targetInputId: String?,
+        onDone: (String) -> Unit
+    ) {
+        val sheet = InlineScriptEditorSheet.newInstance(initialScript)
+        sheet.onDone = { script ->
+            if (script.isNotBlank()) {
+                onDone(script)
+            }
+        }
+        sheet.onVariableRequested = onVariableRequested@{
+            val inputId = targetInputId ?: focusedToolbarInputId ?: focusedInputId ?: return@onVariableRequested
+            readParametersFromUi()
+            onInlineScriptVariableRequested?.invoke(inputId, currentParameters.asMap(), sheet)
+        }
+        sheet.show(parentFragmentManager, "InlineScriptEditorSheet")
+    }
+
+    private fun insertInlineScriptIntoInput(inputId: String, script: String) {
+        val richTextView = findRichTextView(inputId) ?: return
+        richTextView.insertInlineScriptPill(script)
     }
 
     /**
@@ -410,6 +472,7 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
             )
             customUiContainer?.addView(customEditorHolder!!.view)
             bindKeyboardToolbarFocus(customEditorHolder!!.view)
+            bindCustomEditorKeyboardToolbarTargets(customEditorHolder!!)
         }
 
         customUiCard?.isVisible = uiModel.showCustomUi
@@ -679,11 +742,12 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
     }
 
     private fun bindKeyboardToolbarFocus(row: View, inputDef: InputDefinition) {
-        if (!inputDef.acceptsMagicVariable && !inputDef.acceptsNamedVariable && !inputDef.supportsRichText) {
+        if (!inputDef.acceptsMagicVariable && !inputDef.acceptsNamedVariable && !inputDef.allowsInlineScript) {
             return
         }
         findDescendantTextInputs(row).forEach { editText ->
             bindKeyboardToolbarFocus(editText, inputDef.id, row)
+            bindInlineScriptEditing(editText)
         }
     }
 
@@ -691,10 +755,42 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
         findDescendantTextInputs(root).forEach { editText ->
             val inputId = editText.tag as? String ?: return@forEach
             val inputDef = findDynamicInputDefinition(inputId) ?: return@forEach
-            if (!inputDef.acceptsMagicVariable && !inputDef.acceptsNamedVariable && !inputDef.supportsRichText) {
+            if (!inputDef.acceptsMagicVariable && !inputDef.acceptsNamedVariable && !inputDef.allowsInlineScript) {
                 return@forEach
             }
             bindKeyboardToolbarFocus(editText, inputId, root)
+            bindInlineScriptEditing(editText)
+        }
+    }
+
+    private fun bindCustomEditorKeyboardToolbarTargets(holder: CustomEditorViewHolder) {
+        holder.getKeyboardToolbarTargets().forEach { target ->
+            val inputDef = findDynamicInputDefinition(target.inputId) ?: return@forEach
+            if (!inputDef.acceptsMagicVariable && !inputDef.acceptsNamedVariable && !inputDef.allowsInlineScript) {
+                return@forEach
+            }
+            bindKeyboardToolbarFocus(target.view, target.inputId, holder.view)
+        }
+    }
+
+    private fun bindInlineScriptEditing(editText: com.google.android.material.textfield.TextInputEditText) {
+        val richTextView = editText as? RichTextView ?: return
+        richTextView.onInlineScriptEditRequested = { currentCode, onUpdated ->
+            val inputId = richTextView.tag as? String ?: focusedToolbarInputId ?: focusedInputId
+            showInlineScriptEditor(currentCode, inputId, onUpdated)
+        }
+        richTextView.onVariablePillEditRequested = onVariablePillEditRequested@{ currentReference, onUpdated ->
+            val inputId = richTextView.tag as? String
+                ?: focusedToolbarInputId
+                ?: focusedInputId
+                ?: return@onVariablePillEditRequested
+            readParametersFromUi()
+            onVariablePillEditRequested?.invoke(
+                inputId,
+                currentParameters.asMap(),
+                currentReference,
+                onUpdated
+            )
         }
     }
 
@@ -713,6 +809,21 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
         }
         editText.setOnClickListener {
             focusedToolbarInputId = inputId
+            updateKeyboardToolbarVisibility()
+        }
+    }
+
+    private fun bindKeyboardToolbarFocus(
+        targetView: View,
+        inputId: String,
+        scope: View
+    ) {
+        targetView.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                focusedToolbarInputId = inputId
+            } else if (focusedToolbarInputId == inputId && !hasFocusedToolbarTarget(scope)) {
+                focusedToolbarInputId = null
+            }
             updateKeyboardToolbarVisibility()
         }
     }
@@ -740,6 +851,25 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
 
     private fun hasFocusedTextInput(root: View): Boolean {
         return findDescendantTextInputs(root).any { it.hasFocus() }
+    }
+
+    private fun hasFocusedToolbarTarget(root: View): Boolean {
+        if (hasFocusedTextInput(root)) return true
+        return customEditorHolder
+            ?.getKeyboardToolbarTargets()
+            ?.any { isDescendantOrSelf(root, it.view) && it.view.hasFocus() }
+            ?: false
+    }
+
+    private fun isDescendantOrSelf(root: View, candidate: View): Boolean {
+        if (root == candidate) return true
+        if (root !is ViewGroup) return false
+        for (index in 0 until root.childCount) {
+            if (isDescendantOrSelf(root.getChildAt(index), candidate)) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun bindImmediateDynamicInputUpdates(row: View, inputDef: InputDefinition) {
@@ -790,6 +920,15 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
         return module.getDynamicInputs(currentStepForUi(), allSteps).find { it.id == inputId }
     }
 
+    private fun findRichTextView(inputId: String): RichTextView? {
+        return ActionEditorRichTextLocator.findRichTextView(
+            inputId = inputId,
+            inputDefinition = findDynamicInputDefinition(inputId),
+            inputViews = inputViews,
+            customEditorHolder = customEditorHolder
+        )
+    }
+
     private fun mergeCustomEditorParametersFromUi() {
         val uiProvider = module.uiProvider
         if (uiProvider != null && customEditorHolder != null && uiProvider.hasCustomEditor()) {
@@ -817,17 +956,15 @@ class ActionEditorSheet : BottomSheetDialogFragment() {
      * 更新输入框的变量。
      */
     fun updateInputWithVariable(inputId: String, variableReference: String) {
-        val inputDef = findDynamicInputDefinition(inputId)
         val path = ParamPath.parse(inputId)
-        val richTextView = ActionEditorRichTextLocator.findRichTextView(
-            inputId = inputId,
-            inputDefinition = inputDef,
-            inputViews = inputViews,
-            customEditorHolder = customEditorHolder
-        )
+        val richTextView = findRichTextView(inputId)
 
         if (richTextView != null) {
             richTextView.insertVariablePill(variableReference)
+            return
+        }
+
+        if (customEditorHolder?.insertVariable(inputId, variableReference) == true) {
             return
         }
 

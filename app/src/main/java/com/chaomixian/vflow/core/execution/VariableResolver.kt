@@ -26,9 +26,11 @@ object VariableResolver {
 
         val segments = TemplateParser(text).parse()
         val variableCount = segments.count { it is TemplateSegment.Variable }
+        val scriptCount = segments.count { it is TemplateSegment.Script }
 
-        if (variableCount == 0) return false // 纯文本
-        if (variableCount > 1) return true   // 多个变量
+        if (scriptCount > 0) return true
+        if (variableCount == 0) return false
+        if (variableCount > 1) return true
         return segments.any { it is TemplateSegment.Text && it.content.trim().isNotEmpty() }
     }
 
@@ -38,7 +40,9 @@ object VariableResolver {
      */
     fun hasVariableReference(text: String?): Boolean {
         if (text.isNullOrEmpty()) return false
-        return TemplateParser(text).parse().any { it is TemplateSegment.Variable }
+        return TemplateParser(text).parse().any {
+            it is TemplateSegment.Variable || it is TemplateSegment.Script
+        }
     }
 
     /**
@@ -57,6 +61,10 @@ object VariableResolver {
      */
     private fun resolve(text: String, context: ExecutionContext, maxDepth: Int, currentDepth: Int = 0): String {
         if (text.isEmpty() || currentDepth >= maxDepth) return text
+        val scriptResolvedText = InlineScriptEvaluator.resolve(text, context)
+        if (scriptResolvedText != text) {
+            return resolve(scriptResolvedText, context, maxDepth, currentDepth + 1)
+        }
 
         val parser = TemplateParser(text)
         val segments = parser.parse()
@@ -76,6 +84,7 @@ object VariableResolver {
                         sb.append(strValue)
                     }
                 }
+                is TemplateSegment.Script -> sb.append(segment.rawExpression)
             }
         }
         return sb.toString()

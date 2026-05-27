@@ -70,7 +70,16 @@ data class EditorAction(
  * 用于持有模块参数编辑界面的视图引用，方便管理。
  * @param view ViewHolder 的根视图。
  */
-abstract class CustomEditorViewHolder(val view: View)
+abstract class CustomEditorViewHolder(val view: View) {
+    open fun onDestroy() = Unit
+    open fun getKeyboardToolbarTargets(): List<CustomEditorKeyboardToolbarTarget> = emptyList()
+    open fun insertVariable(inputId: String, variableReference: String): Boolean = false
+}
+
+data class CustomEditorKeyboardToolbarTarget(
+    val inputId: String,
+    val view: View
+)
 
 /**
  * 模块用户界面提供者接口。
@@ -400,6 +409,7 @@ sealed class InputVisibility {
  * @param options 如果 staticType 是 ENUM，则这些是可选项列表。
  * @param acceptsMagicVariable 此参数是否接受魔法变量作为输入。
  * @param acceptsNamedVariable 此参数是否接受命名变量作为输入。
+ * @param acceptsInlineScript 此参数是否接受 inline JavaScript；null 时跟随 supportsRichText。
  * @param acceptedMagicVariableTypes 如果接受魔法变量，这里定义了可接受的魔法变量的类型名称集合。
  * @param supportsRichText 此文本输入是否支持富文本编辑（内嵌变量药丸）。
  * @param isHidden 此参数是否在UI中隐藏 (例如，内部使用的参数)。已废弃，请使用 visibility。
@@ -419,6 +429,7 @@ data class InputDefinition(
     val options: List<String> = emptyList(),
     val acceptsMagicVariable: Boolean = true,
     val acceptsNamedVariable: Boolean = true,
+    val acceptsInlineScript: Boolean? = null,
     val acceptedMagicVariableTypes: Set<String> = emptySet(),
     val supportsRichText: Boolean = false,
     val isHidden: Boolean = false,
@@ -436,6 +447,9 @@ data class InputDefinition(
     /** 向后兼容映射：旧值 -> 新值 */
     val legacyValueMap: Map<String, String>? = null
 ) {
+    val allowsInlineScript: Boolean
+        get() = acceptsInlineScript ?: supportsRichText
+
     /**
      * 获取本地化的参数名称
      * @param context Android上下文

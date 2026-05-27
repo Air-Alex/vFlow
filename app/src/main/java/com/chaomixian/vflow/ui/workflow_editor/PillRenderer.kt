@@ -4,6 +4,7 @@ package com.chaomixian.vflow.ui.workflow_editor
 
 import android.content.Context
 import android.graphics.*
+import android.text.Spannable
 import android.text.Spanned
 import android.text.SpannableStringBuilder
 import android.text.style.ReplacementSpan
@@ -36,6 +37,7 @@ import kotlin.math.roundToInt
  * - 颜色管理（已移到 PillTheme）
  */
 object PillRenderer {
+    private const val INLINE_SCRIPT_PLACEHOLDER = "\uFFFC"
 
     /**
      * 显示样式。
@@ -153,6 +155,10 @@ object PillRenderer {
         return variableReference
     }
 
+    private fun inlineScriptDisplayName(context: Context): String {
+        return context.getString(R.string.inline_script_pill_label)
+    }
+
     private fun truncate(text: String, maxLength: Int = 11): String {
         return if (text.length > maxLength) text.take(maxLength) + "..." else text
     }
@@ -241,25 +247,71 @@ object PillRenderer {
         TemplateParser(rawText).parse().forEach { segment ->
             when (segment) {
                 is TemplateSegment.Text -> spannable.append(segment.content)
-                is TemplateSegment.Variable -> {
-                    val variableRef = segment.rawExpression
-                    val resolvedInfo = PillVariableResolver.resolveVariable(context, variableRef, allSteps)
-                    val color = resolvedInfo?.color
-                        ?: PillTheme.getColor(context, R.color.variable_pill_color)
-
-                    if (mode == RenderMode.EDIT) {
-                        // ===== 编辑模式：保留原始变量引用 =====
-                        renderPillWithSpacing(spannable, variableRef, resolvedInfo?.displayName ?: variableRef, color, context, allSteps)
-                    } else {
-                        // ===== 预览模式：替换为显示名称 =====
-                        val displayName = resolvedInfo?.displayName ?: variableRef
-                        renderPillWithSpacing(spannable, displayName, null, color, context, allSteps)
-                    }
-                }
+                is TemplateSegment.Variable -> renderVariablePill(
+                    spannable = spannable,
+                    variableRef = segment.rawExpression,
+                    mode = mode,
+                    allSteps = allSteps,
+                    context = context
+                )
+                is TemplateSegment.Script -> renderInlineScriptPill(spannable, segment, context)
             }
         }
 
         return spannable
+    }
+
+    private fun renderVariablePill(
+        spannable: SpannableStringBuilder,
+        variableRef: String,
+        mode: RenderMode,
+        allSteps: List<ActionStep>,
+        context: Context
+    ) {
+        val resolvedInfo = PillVariableResolver.resolveVariable(context, variableRef, allSteps)
+        val color = resolvedInfo?.color
+            ?: PillTheme.getColor(context, R.color.variable_pill_color)
+
+        if (mode == RenderMode.EDIT) {
+            renderPillWithSpacing(
+                spannable = spannable,
+                text = variableRef,
+                displayText = resolvedInfo?.displayName ?: variableRef,
+                color = color,
+                context = context,
+                allSteps = allSteps,
+                variableReference = variableRef
+            )
+        } else {
+            val displayName = resolvedInfo?.displayName ?: variableRef
+            renderPillWithSpacing(spannable, displayName, null, color, context, allSteps)
+        }
+    }
+
+    private fun renderInlineScriptPill(
+        spannable: SpannableStringBuilder,
+        script: TemplateSegment.Script,
+        context: Context
+    ) {
+        val displayName = inlineScriptDisplayName(context)
+        val color = PillTheme.getColor(context, R.color.inline_script_pill_color)
+        val start = spannable.length
+        spannable.append(INLINE_SCRIPT_PLACEHOLDER)
+        val end = spannable.length
+        spannable.setSpan(
+            RoundedBackgroundSpan(
+                context = context,
+                backgroundColor = color,
+                displayText = displayName,
+                allSteps = null,
+                rawText = script.rawExpression,
+                inlineScriptCode = script.code,
+                textColor = Color.BLACK
+            ),
+            start,
+            end,
+            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
     }
 
     /**
@@ -280,7 +332,8 @@ object PillRenderer {
         displayText: String?,
         color: Int,
         context: Context,
-        allSteps: List<ActionStep>? = null
+        allSteps: List<ActionStep>? = null,
+        variableReference: String? = null
     ) {
         val start = spannable.length
         spannable.append(text)
@@ -288,9 +341,9 @@ object PillRenderer {
 
         spannable.setSpan(
             if (displayText != null) {
-                RoundedBackgroundSpan(context, color, displayText, allSteps)
+                RoundedBackgroundSpan(context, color, displayText, allSteps, variableReference = variableReference)
             } else {
-                RoundedBackgroundSpan(context, color, null, allSteps)
+                RoundedBackgroundSpan(context, color, null, allSteps, variableReference = variableReference)
             },
             start, end,
             android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
@@ -322,7 +375,15 @@ object PillRenderer {
 
         if (mode == RenderMode.EDIT) {
             // ===== 编辑模式：保留原始变量引用 =====
-            renderPillWithSpacing(spannable, variableRef, resolvedInfo?.displayName ?: variableRef, color, context, allSteps)
+            renderPillWithSpacing(
+                spannable = spannable,
+                text = variableRef,
+                displayText = resolvedInfo?.displayName ?: variableRef,
+                color = color,
+                context = context,
+                allSteps = allSteps,
+                variableReference = variableRef
+            )
         } else {
             // ===== 预览模式：替换为显示名称 =====
             val displayName = resolvedInfo?.displayName ?: variableRef
@@ -330,6 +391,19 @@ object PillRenderer {
         }
 
         return spannable
+    }
+
+    fun renderSingleInlineScriptPill(
+        code: String,
+        allSteps: List<ActionStep>,
+        context: Context
+    ): SpannableStringBuilder {
+        return renderToSpannable(
+            "{%$code%}",
+            RenderMode.EDIT,
+            allSteps,
+            context
+        )
     }
 
     /**
@@ -355,9 +429,12 @@ object PillRenderer {
         private val context: Context,
         private val backgroundColor: Int,
         private val displayText: String? = null,
-        private val allSteps: List<ActionStep>? = null
-    ) : ReplacementSpan() {
+        private val allSteps: List<ActionStep>? = null,
+        val rawText: String? = null,
+        val variableReference: String? = null,
+        val inlineScriptCode: String? = null,
         private val textColor: Int = Color.WHITE
+    ) : ReplacementSpan() {
         private val cornerRadius: Float = 25f
 
         // 内部 padding：文本与背景边界的间距
@@ -415,6 +492,7 @@ object PillRenderer {
                         ))
                         currentOffset += variableRef.length
                     }
+                    is TemplateSegment.Script -> currentOffset += segment.rawExpression.length
                 }
             }
 
@@ -455,6 +533,33 @@ object PillRenderer {
 
             // 返回总宽度 = 前间距 + 文本宽度 + 左右内部 padding + 后间距
             return (externalSpacingX + textWidth + internalPaddingX * 2 + externalSpacingX).roundToInt()
+        }
+
+        fun getClickableBounds(
+            paint: Paint,
+            text: CharSequence,
+            start: Int,
+            end: Int,
+            x: Float,
+            baseline: Int,
+            horizontalInset: Float
+        ): RectF {
+            val textToMeasure = displayText ?: text.substring(start, end)
+            val textWidth = if (allSteps != null &&
+                com.chaomixian.vflow.core.execution.VariableResolver.hasVariableReference(textToMeasure)) {
+                calculateTextWidthWithVariables(paint, textToMeasure)
+            } else {
+                paint.measureText(textToMeasure)
+            }
+            val bgStart = x + externalSpacingX
+            val bgEnd = bgStart + textWidth + internalPaddingX * 2
+            val inset = horizontalInset.coerceAtMost(((bgEnd - bgStart) / 2f).coerceAtLeast(0f))
+            return RectF(
+                bgStart + inset,
+                baseline + paint.fontMetrics.ascent - internalPaddingY,
+                bgEnd - inset,
+                baseline + paint.fontMetrics.descent + internalPaddingY
+            )
         }
 
         /**

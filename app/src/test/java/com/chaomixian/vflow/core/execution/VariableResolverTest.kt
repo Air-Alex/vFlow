@@ -83,6 +83,26 @@ class VariableResolverTest {
         assertTrue(VariableResolver.isComplex("{{aaa}}{{bbb}}"))
     }
 
+    @Test
+    fun `complexity helpers recognize inline scripts`() {
+        assertTrue(VariableResolver.hasVariableReference("{%return 1%}"))
+        assertTrue(VariableResolver.isComplex("{%return 1%}"))
+        assertFalse(VariableResolver.hasVariableReference("\\{%return 1%}"))
+    }
+
+    @Test
+    fun `resolve throws inline script error with JavaScript message`() {
+        val error = org.junit.Assert.assertThrows(
+            InlineScriptEvaluator.InlineScriptExecutionException::class.java
+        ) {
+            VariableResolver.resolve("before {%missingCall()%} after", createContext())
+        }
+
+        assertTrue(error.message.orEmpty().contains("Inline JavaScript 执行失败"))
+        assertTrue(error.message.orEmpty().contains("missingCall"))
+        assertTrue(error.message.orEmpty().contains("脚本: missingCall()"))
+    }
+
     private fun createContext(
         stepOutputs: MutableMap<String, Map<String, com.chaomixian.vflow.core.types.VObject>> = mutableMapOf(),
         namedVariables: MutableMap<String, com.chaomixian.vflow.core.types.VObject> = mutableMapOf()

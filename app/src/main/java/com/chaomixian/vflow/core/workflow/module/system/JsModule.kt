@@ -48,7 +48,8 @@ class JsModule : BaseModule() {
             name = "JavaScript 脚本",
             staticType = ParameterType.STRING,
             defaultValue = "vflow.device.toast({ message: 'Hello from JavaScript!' })\n\n// Read values from script inputs.\n// var myVar = inputs.my_variable\n\n// Return a dictionary as outputs.\nvar r = {};\nr.result = 1 + 1;\nr;",
-            acceptsMagicVariable = false
+            acceptsMagicVariable = true,
+            acceptsInlineScript = false
         ),
         InputDefinition(
             id = "inputs",

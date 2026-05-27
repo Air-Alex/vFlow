@@ -2,23 +2,40 @@ package com.chaomixian.vflow.core.workflow.module.system
 
 import android.content.Context
 import android.content.Intent
+import android.view.MotionEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.TextView
 import com.chaomixian.vflow.R
+import com.chaomixian.vflow.core.module.CustomEditorKeyboardToolbarTarget
 import com.chaomixian.vflow.core.module.CustomEditorViewHolder
 import com.chaomixian.vflow.core.module.ModuleUIProvider
 import com.chaomixian.vflow.core.workflow.model.ActionStep
-import com.chaomixian.vflow.ui.workflow_editor.CodeEditText
 import com.chaomixian.vflow.ui.workflow_editor.DictionaryKVAdapter
-import com.google.android.material.textfield.TextInputLayout
+import com.chaomixian.vflow.ui.workflow_editor.SoraJavaScriptEditorConfig
+import io.github.rosemoe.sora.widget.CodeEditor
 
 class JsEditorViewHolder(
     view: View,
-    val scriptInput: CodeEditText,
+    val scriptInput: CodeEditor,
     val inputsAdapter: DictionaryKVAdapter
-) : CustomEditorViewHolder(view)
+) : CustomEditorViewHolder(view) {
+    override fun getKeyboardToolbarTargets(): List<CustomEditorKeyboardToolbarTarget> {
+        return listOf(CustomEditorKeyboardToolbarTarget("script", scriptInput))
+    }
+
+    override fun insertVariable(inputId: String, variableReference: String): Boolean {
+        if (inputId != "script") return false
+        scriptInput.insertText(variableReference, variableReference.length)
+        return true
+    }
+
+    override fun onDestroy() {
+        scriptInput.release()
+    }
+}
 
 class JsModuleUIProvider : ModuleUIProvider {
 
@@ -55,15 +72,33 @@ class JsModuleUIProvider : ModuleUIProvider {
             setPadding(padding, padding, padding, padding)
         }
 
-        val scriptInputLayout = TextInputLayout(context).apply {
-            hint = context.getString(R.string.param_vflow_system_js_script_name)
+        val scriptLabel = TextView(context).apply {
+            text = context.getString(R.string.param_vflow_system_js_script_name)
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelLarge)
         }
-        val scriptInput = CodeEditText(context).apply {
-            minLines = 8
+        view.addView(scriptLabel)
+
+        val scriptInput = CodeEditor(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (280 * context.resources.displayMetrics.density).toInt()
+            ).apply {
+                topMargin = (8 * context.resources.displayMetrics.density).toInt()
+                bottomMargin = (16 * context.resources.displayMetrics.density).toInt()
+            }
             setText(currentParameters["script"] as? String ?: "")
+            SoraJavaScriptEditorConfig.applyTo(this)
+            setOnTouchListener { view, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN,
+                    MotionEvent.ACTION_MOVE -> view.parent?.requestDisallowInterceptTouchEvent(true)
+                    MotionEvent.ACTION_UP,
+                    MotionEvent.ACTION_CANCEL -> view.parent?.requestDisallowInterceptTouchEvent(false)
+                }
+                false
+            }
         }
-        scriptInputLayout.addView(scriptInput)
-        view.addView(scriptInputLayout)
+        view.addView(scriptInput)
 
         val inputsEditorView = inflater.inflate(R.layout.partial_dictionary_editor, view, false)
         val inputsRecyclerView = inputsEditorView.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recycler_view_dictionary)

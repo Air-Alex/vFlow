@@ -507,32 +507,40 @@ object WorkflowExecutor {
                 namedVariables = namedVariables
             )
 
-            // 统一解析所有变量引用
-            step.parameters.forEach { (key, value) ->
-                if (value is String) {
-                    when {
-                        // 1. 魔法变量 ({{...}})
-                        value.isMagicVariable() -> {
-                            VariableResolver.resolveSingleVariableReference(value, executionContext)?.let { resolved ->
-                                executionContext.magicVariables[key] = resolved
+            val parameterResolutionFailure = runCatching {
+                // 统一解析所有变量引用
+                step.parameters.forEach { (key, value) ->
+                    if (value is String) {
+                        when {
+                            // 1. 魔法变量 ({{...}})
+                            value.isMagicVariable() -> {
+                                VariableResolver.resolveSingleVariableReference(value, executionContext)?.let { resolved ->
+                                    executionContext.magicVariables[key] = resolved
+                                }
                             }
-                        }
 
-                        // 2. 命名变量 ([[...]])
-                        value.isNamedVariable() -> {
-                            VariableResolver.resolveSingleVariableReference(value, executionContext)?.let { resolved ->
-                                executionContext.magicVariables[key] = resolved
+                            // 2. 命名变量 ([[...]])
+                            value.isNamedVariable() -> {
+                                VariableResolver.resolveSingleVariableReference(value, executionContext)?.let { resolved ->
+                                    executionContext.magicVariables[key] = resolved
+                                }
                             }
-                        }
 
-                        // 3. 混合情况：包含变量引用的普通字符串 (如 "静态文本{{uuid.success}}")
-                        VariableResolver.isComplex(value) -> {
-                            // 使用 VariableResolver 解析混合字符串，然后包装为 VString
-                            val resolved = VariableResolver.resolve(value, executionContext)
-                            executionContext.magicVariables[key] = VString(resolved)
+                            // 3. 混合情况：包含变量引用的普通字符串 (如 "静态文本{{uuid.success}}")
+                            VariableResolver.isComplex(value) -> {
+                                // 使用 VariableResolver 解析混合字符串，然后包装为 VString
+                                val resolved = VariableResolver.resolve(value, executionContext)
+                                executionContext.magicVariables[key] = VString(resolved)
+                            }
                         }
                     }
                 }
+            }.exceptionOrNull()
+
+            val preExecutionFailure = parameterResolutionFailure?.let { error ->
+                val message = formatExecutionExceptionMessage(error, "参数解析失败")
+                DebugLogger.e("WorkflowExecutor", "步骤参数解析失败: $message")
+                ExecutionResult.Failure("参数解析失败", message)
             }
 
             // 使用本地 DebugLogger，它会自动记录到 detailedLog
@@ -555,9 +563,16 @@ object WorkflowExecutor {
                     delay(retryInterval)
                 }
 
-                finalResult = module.execute(executionContext) { progressUpdate ->
-                    DebugLogger.d("WorkflowExecutor", "[进度] ${module.metadata.name}: ${progressUpdate.message}")
-                    ExecutionNotificationManager.updateState(workflow, ExecutionNotificationState.Running(progress, progressUpdate.message))
+                finalResult = preExecutionFailure ?: try {
+                    module.execute(executionContext) { progressUpdate ->
+                        DebugLogger.d("WorkflowExecutor", "[进度] ${module.metadata.name}: ${progressUpdate.message}")
+                        ExecutionNotificationManager.updateState(workflow, ExecutionNotificationState.Running(progress, progressUpdate.message))
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    DebugLogger.e("WorkflowExecutor", "模块执行异常: ${module.metadata.name}", e)
+                    executionExceptionToFailure(e)
                 }
 
                 if (finalResult is ExecutionResult.Success || finalResult is ExecutionResult.Signal) {
@@ -733,6 +748,27 @@ object WorkflowExecutor {
             }
         }
         return returnValue // 返回子工作流的结果
+    }
+
+    private fun executionExceptionToFailure(error: Exception): ExecutionResult.Failure {
+        return when (error) {
+            is InlineScriptEvaluator.InlineScriptExecutionException -> {
+                ExecutionResult.Failure(
+                    errorTitle = "Inline JavaScript 执行失败",
+                    errorMessage = formatExecutionExceptionMessage(error, "Inline JavaScript 执行失败")
+                )
+            }
+            else -> {
+                ExecutionResult.Failure(
+                    errorTitle = "模块执行异常",
+                    errorMessage = formatExecutionExceptionMessage(error, "模块执行异常")
+                )
+            }
+        }
+    }
+
+    private fun formatExecutionExceptionMessage(error: Throwable, fallback: String): String {
+        return error.localizedMessage ?: error.message ?: fallback
     }
 
     /**

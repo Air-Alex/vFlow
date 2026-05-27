@@ -19,6 +19,11 @@ class TemplateParser(private val input: String) {
             // 如果遇到反斜杠 \，且后面还有字符
             if (c == '\\' && i + 1 < input.length) {
                 val nextChar = input[i + 1]
+                if (nextChar == '%' && i + 2 < input.length && input[i + 2] == '}') {
+                    buffer.append("%}")
+                    i += 3
+                    continue
+                }
                 // 仅转义关键符号：{, }, [, ], \
                 if (isSpecialChar(nextChar)) {
                     buffer.append(nextChar)
@@ -35,14 +40,27 @@ class TemplateParser(private val input: String) {
                 continue
             }
 
-            // --- 3. 检测 [[ 变量 (命名变量) ---
+            // --- 3. 检测 {% inline JavaScript ---
+            if (c == '{' && i + 1 < input.length && input[i + 1] == '%') {
+                val closeIndex = findClosingPercentTag(i + 2)
+                if (closeIndex != -1) {
+                    flushBuffer(segments, buffer)
+                    val code = input.substring(i + 2, closeIndex).replace("\\%}", "%}")
+                    val raw = input.substring(i, closeIndex + 2)
+                    segments.add(TemplateSegment.Script(code, raw))
+                    i = closeIndex + 2
+                    continue
+                }
+            }
+
+            // --- 4. 检测 [[ 变量 (命名变量) ---
             if (c == '[' && i + 1 < input.length && input[i + 1] == '[') {
                 flushBuffer(segments, buffer)
                 i = parseExpression(i, "[", "]", true, segments)
                 continue
             }
 
-            // --- 4. 普通字符 ---
+            // --- 5. 普通字符 ---
             buffer.append(c)
             i++
         }
@@ -129,6 +147,21 @@ class TemplateParser(private val input: String) {
                     continue
                 }
                 // depth == 0，找到真正的闭合标记
+                return j
+            }
+            j++
+        }
+        return -1
+    }
+
+    private fun findClosingPercentTag(start: Int): Int {
+        var j = start
+        while (j < input.length - 1) {
+            if (input[j] == '\\' && input[j + 1] == '%' && j + 2 < input.length && input[j + 2] == '}') {
+                j += 3
+                continue
+            }
+            if (input[j] == '%' && input[j + 1] == '}') {
                 return j
             }
             j++

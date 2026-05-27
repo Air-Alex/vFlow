@@ -1,6 +1,7 @@
 // 文件: main/java/com/chaomixian/vflow/ui/workflow_editor/MagicVariablePickerSheet.kt
 package com.chaomixian.vflow.ui.workflow_editor
 
+import android.content.DialogInterface
 import android.os.Bundle
 import android.os.Parcelable
 import android.util.TypedValue
@@ -60,7 +61,6 @@ sealed class PickerListItem {
 
 private sealed class NavigationListItem {
     data class Header(val title: String, val subtitle: String? = null) : NavigationListItem()
-    data class VariableEntry(val item: MagicVariableItem) : NavigationListItem()
     data class PropertyEntry(
         val property: VPropertyDef,
         val nextItem: MagicVariableItem,
@@ -95,6 +95,7 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
 
     /** 选择回调：当用户选择一个变量或清除操作时触发。null 表示清除了选择。 */
     var onSelection: ((MagicVariableItem?) -> Unit)? = null
+    var onDismissed: (() -> Unit)? = null
     private var onInlineVariableSelection: ((MagicVariableItem) -> Unit)? = null
 
     private lateinit var rootRecyclerView: RecyclerView
@@ -126,7 +127,8 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
             acceptedMagicVariableTypes: Set<String> = emptySet(),
             enableTypeFilter: Boolean = false,
             allowClear: Boolean = true,
-            allSteps: List<ActionStep> = emptyList()
+            allSteps: List<ActionStep> = emptyList(),
+            initialVariableReference: String? = null
         ): MagicVariablePickerSheet {
             return MagicVariablePickerSheet().apply {
                 arguments = Bundle().apply {
@@ -138,6 +140,7 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
                     putBoolean("enableTypeFilter", enableTypeFilter)
                     putBoolean("allowClear", allowClear)
                     putParcelableArrayList("allSteps", ArrayList(allSteps))
+                    putString("initialVariableReference", initialVariableReference)
                 }
             }
         }
@@ -214,6 +217,14 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
             }
         }
         if (currentNavigationStack.isEmpty()) {
+            currentNavigationStack = buildNavigationStackForReference(
+                variableReference = arguments?.getString("initialVariableReference"),
+                stepVariables = stepVariables,
+                namedVariables = namedVariables
+            )?.toMutableList() ?: mutableListOf()
+        }
+
+        if (currentNavigationStack.isEmpty()) {
             showRootList()
         } else {
             val currentItem = currentNavigationStack.last().item
@@ -229,6 +240,57 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
             )
         }
         return view
+    }
+
+    private fun buildNavigationStackForReference(
+        variableReference: String?,
+        stepVariables: Map<String, List<MagicVariableItem>>,
+        namedVariables: Map<String, List<MagicVariableItem>>
+    ): List<NavigationCrumb>? {
+        if (variableReference.isNullOrBlank()) return null
+
+        val parsed = VariablePathParser.parseSingleVariableReference(variableReference) ?: return null
+        val allItems = namedVariables.values.flatten() + stepVariables.values.flatten()
+        val rootMatch = allItems
+            .mapNotNull { item ->
+                val itemPath = VariablePathParser.parseSingleVariableReference(item.variableReference)?.path
+                    ?: return@mapNotNull null
+                if (parsed.path.take(itemPath.size) == itemPath && parsed.path.size > itemPath.size) {
+                    item to itemPath
+                } else {
+                    null
+                }
+            }
+            .maxByOrNull { (_, itemPath) -> itemPath.size }
+            ?: return null
+        val rootItem = rootMatch.first
+        val rootPathSize = rootMatch.second.size
+
+        val stack = mutableListOf(NavigationCrumb(rootItem.variableName, rootItem))
+        var currentItem = rootItem
+        parsed.path.drop(rootPathSize).forEach { segment ->
+            val type = VTypeRegistry.getType(currentItem.typeId)
+            val property = type.properties.firstOrNull { it.matches(segment) }
+            val nextItem = currentItem.copy(
+                variableReference = VariablePathParser.appendPathSegment(currentItem.variableReference, property?.name ?: segment),
+                variableName = if (property != null) {
+                    buildPropertyVariableName(currentItem, property.getLocalizedName(requireContext()))
+                } else {
+                    "${currentItem.variableName}.$segment"
+                },
+                originDescription = "(${property?.type?.getLocalizedName(requireContext()) ?: VTypeRegistry.ANY.getLocalizedName(requireContext())})",
+                typeId = property?.type?.id ?: VTypeRegistry.ANY.id
+            )
+            stack += NavigationCrumb(property?.getLocalizedName(requireContext()) ?: segment, nextItem)
+            currentItem = nextItem
+        }
+
+        return stack
+    }
+
+    override fun onDismiss(dialog: DialogInterface) {
+        super.onDismiss(dialog)
+        onDismissed?.invoke()
     }
 
     private fun handleVariableSelection(item: MagicVariableItem) {
@@ -525,7 +587,6 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
             text = label
             isCheckable = false
             isClickable = true
-            isCheckable = false
             isCheckedIconVisible = false
             setOnClickListener { onClick() }
             chipBackgroundColor = android.content.res.ColorStateList.valueOf(
@@ -631,7 +692,6 @@ private class MagicVariableNavigationAdapter(
             is NavigationListItem.Header -> TYPE_HEADER
             is NavigationListItem.PropertyEntry -> TYPE_PROPERTY
             is NavigationListItem.ActionEntry -> TYPE_ACTION
-            is NavigationListItem.VariableEntry -> TYPE_ACTION
         }
     }
 
@@ -651,7 +711,6 @@ private class MagicVariableNavigationAdapter(
             is NavigationListItem.Header -> (holder as HeaderViewHolder).bind(item)
             is NavigationListItem.PropertyEntry -> (holder as PropertyViewHolder).bind(item)
             is NavigationListItem.ActionEntry -> (holder as ActionViewHolder).bind(item)
-            is NavigationListItem.VariableEntry -> Unit
         }
     }
 

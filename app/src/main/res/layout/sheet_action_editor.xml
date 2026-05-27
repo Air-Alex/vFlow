@@ -207,6 +207,16 @@
             app:icon="@drawable/rounded_dataset_24"
             app:iconGravity="textStart" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_keyboard_toolbar_script"
+            style="@style/Widget.Material3.Button.TonalButton.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="42dp"
+            android:layout_marginStart="8dp"
+            android:text="@string/action_add_script"
+            app:icon="@drawable/rounded_js_24"
+            app:iconGravity="textStart" />
+
         <Space
             android:layout_width="0dp"
             android:layout_height="1dp"

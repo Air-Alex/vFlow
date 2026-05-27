@@ -142,16 +142,35 @@ data class VariableInfo(
             val createVarStep = allSteps.find {
                 it.moduleId == "vflow.variable.create" &&
                 (it.parameters["variableName"] as? String) == varName
-            } ?: return null
+            }
 
-            val varType = createVarStep.parameters["type"] as? String
-            val typeEnum = VariableType.fromStoredValue(varType) ?: VariableType.STRING
+            if (createVarStep != null) {
+                val varType = createVarStep.parameters["type"] as? String
+                val typeEnum = VariableType.fromStoredValue(varType) ?: VariableType.STRING
+
+                return VariableInfo(
+                    sourceName = varName,
+                    typeId = typeEnum.typeId,
+                    sourceModuleId = "vflow.variable.create",
+                    sourceStepId = createVarStep.id
+                )
+            }
+
+            val randomVarStep = allSteps.find {
+                it.moduleId == "vflow.variable.random" &&
+                    (it.parameters["variableName"] as? String) == varName
+            } ?: return null
+            val randomModule = ModuleRegistry.getModule(randomVarStep.moduleId) ?: return null
+            val outputType = randomModule.getDynamicOutputs(randomVarStep, allSteps)
+                .firstOrNull()
+                ?.typeName
+                ?: VTypeRegistry.NUMBER.id
 
             return VariableInfo(
                 sourceName = varName,
-                typeId = typeEnum.typeId,
-                sourceModuleId = "vflow.variable.create",
-                sourceStepId = createVarStep.id
+                typeId = outputType,
+                sourceModuleId = randomVarStep.moduleId,
+                sourceStepId = randomVarStep.id
             )
         }
 

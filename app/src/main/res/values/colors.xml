@@ -93,5 +93,6 @@
     <color name="category_user_module">#A8E066</color>
     <color name="variable_pill_color">#93B1CF</color>
     <color name="static_pill_color">#687E89</color>
+    <color name="inline_script_pill_color">#F7DF1E</color>
 
 </resources>

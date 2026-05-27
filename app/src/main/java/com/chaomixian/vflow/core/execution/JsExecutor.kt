@@ -3,6 +3,7 @@ package com.chaomixian.vflow.core.execution
 import com.chaomixian.vflow.core.logging.DebugLogger
 import com.chaomixian.vflow.core.module.*
 import com.chaomixian.vflow.core.types.VObjectFactory
+import com.chaomixian.vflow.core.workflow.GlobalVariableStore
 import kotlinx.coroutines.runBlocking
 import org.mozilla.javascript.*
 
@@ -59,6 +60,17 @@ class JsExecutor(private val executionContext: ExecutionContext) {
             }
             ScriptableObject.putProperty(scope, "vars", varsObj)
 
+            // 注入 global (持久化全局变量快照)
+            val globalObj = context.newObject(scope)
+            runCatching {
+                GlobalVariableStore.getAll(executionContext.applicationContext).forEach { (key, vObj) ->
+                    globalObj.put(key, globalObj, JsValueConverter.coerceToJs(context, scope, vObj))
+                }
+            }.onFailure { error ->
+                DebugLogger.w(TAG, "加载全局变量到 JavaScript 环境失败: ${error.message}", error)
+            }
+            ScriptableObject.putProperty(scope, "global", globalObj)
+
             // 自动构建并注入 vFlow 模块树
             injectVFlowModules(context, scope)
 
@@ -84,7 +96,9 @@ class JsExecutor(private val executionContext: ExecutionContext) {
             }
 
         } catch (e: RhinoException) {
-            val errorMsg = "JavaScript Error at line ${e.lineNumber()}: ${e.columnNumber()}"
+            val details = e.details().takeIf { it.isNotBlank() } ?: e.message.orEmpty()
+            val source = e.lineSource()?.takeIf { it.isNotBlank() }?.let { " - $it" }.orEmpty()
+            val errorMsg = "JavaScript Error at line ${e.lineNumber()}: ${e.columnNumber()}: $details$source"
             DebugLogger.e(TAG, errorMsg)
             throw RuntimeException(errorMsg, e)
         } catch (e: Exception) {

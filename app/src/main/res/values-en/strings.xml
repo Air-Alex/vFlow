@@ -729,6 +729,10 @@
     <string name="label_parameter_name">Parameter Name</string>
     <string name="desc_select_variable">Select Variable</string>
     <string name="action_add_variable">Add Variable</string>
+    <string name="action_add_script">Add Script</string>
+    <string name="title_inline_script_editor">Edit JavaScript</string>
+    <string name="inline_script_editor_hint">The script result is inserted into the text. You can embed {{variables}} in code.</string>
+    <string name="inline_script_pill_label">#JavaScript</string>
     <string name="button_download">Download</string>
     <string name="button_install_module">Install Module</string>
     <string name="label_module_name">Module Name</string>

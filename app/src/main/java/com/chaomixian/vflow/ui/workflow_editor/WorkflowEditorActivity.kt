@@ -919,6 +919,14 @@ class WorkflowEditorActivity : BaseActivity() {
             val stepPositionForContext = triggerSteps.size + if (position != -1) position else actionSteps.size
             showMagicVariablePicker(stepPositionForContext, inputId, module, currentParams)
         }
+        editor.onInlineScriptVariableRequested = { inputId, currentParams, targetSheet ->
+            val stepPositionForContext = triggerSteps.size + if (position != -1) position else actionSteps.size
+            showInlineScriptVariablePicker(stepPositionForContext, inputId, module, currentParams, targetSheet)
+        }
+        editor.onVariablePillEditRequested = { inputId, currentParams, currentReference, onUpdated ->
+            val stepPositionForContext = triggerSteps.size + if (position != -1) position else actionSteps.size
+            showVariablePillEditor(stepPositionForContext, inputId, module, currentParams, currentReference, onUpdated)
+        }
 
         editor.onStartActivityForResult = { intent, callback ->
             pickerHandler?.launchIntentForResult(intent, callback)
@@ -958,6 +966,8 @@ class WorkflowEditorActivity : BaseActivity() {
         }
 
         editor.onMagicVariableRequested = { _, _ -> }
+        editor.onInlineScriptVariableRequested = { _, _, _ -> }
+        editor.onVariablePillEditRequested = { _, _, _, _ -> }
 
         editor.onStartActivityForResult = { intent, callback ->
             pickerHandler?.launchIntentForResult(intent, callback)
@@ -1042,7 +1052,15 @@ class WorkflowEditorActivity : BaseActivity() {
     }
 
 
-    private fun showMagicVariablePicker(editingStepPosition: Int, targetInputId: String, editingModule: ActionModule, currentParams: Map<String, Any?>?) {
+    private fun showMagicVariablePicker(
+        editingStepPosition: Int,
+        targetInputId: String,
+        editingModule: ActionModule,
+        currentParams: Map<String, Any?>?,
+        inlineScriptTarget: InlineScriptEditorSheet? = null,
+        initialVariableReference: String? = null,
+        onVariablePillUpdated: ((String?) -> Unit)? = null
+    ) {
         val allSteps = getAllEditableSteps()
         val prefs = getSharedPreferences("vFlowPrefs", MODE_PRIVATE)
         val enableTypeFilter = prefs.getBoolean("enableTypeFilter", false)
@@ -1075,17 +1093,58 @@ class WorkflowEditorActivity : BaseActivity() {
             acceptsNamedVariable = pickerModel.acceptsNamedVariable,
             acceptedMagicVariableTypes = pickerModel.acceptedMagicVariableTypes,
             enableTypeFilter = pickerModel.enableTypeFilter,
-            allSteps = allSteps
+            allSteps = allSteps,
+            initialVariableReference = initialVariableReference
         )
 
         picker.onSelection = { selectedItem ->
-            if (selectedItem != null) {
-                currentEditorSheet?.updateInputWithVariable(targetInputId, selectedItem.variableReference)
+            if (onVariablePillUpdated != null) {
+                onVariablePillUpdated(selectedItem?.variableReference)
+            } else if (inlineScriptTarget != null) {
+                selectedItem?.let { inlineScriptTarget.insertVariable(it.variableReference) }
             } else {
-                currentEditorSheet?.clearInputVariable(targetInputId)
+                if (selectedItem != null) {
+                    currentEditorSheet?.updateInputWithVariable(targetInputId, selectedItem.variableReference)
+                } else {
+                    currentEditorSheet?.clearInputVariable(targetInputId)
+                }
             }
         }
         picker.show(supportFragmentManager, "MagicVariablePicker")
+    }
+
+    internal fun showInlineScriptVariablePicker(
+        editingStepPosition: Int,
+        targetInputId: String,
+        editingModule: ActionModule,
+        currentParams: Map<String, Any?>?,
+        targetSheet: InlineScriptEditorSheet
+    ) {
+        showMagicVariablePicker(
+            editingStepPosition = editingStepPosition,
+            targetInputId = targetInputId,
+            editingModule = editingModule,
+            currentParams = currentParams,
+            inlineScriptTarget = targetSheet
+        )
+    }
+
+    private fun showVariablePillEditor(
+        editingStepPosition: Int,
+        targetInputId: String,
+        editingModule: ActionModule,
+        currentParams: Map<String, Any?>?,
+        currentReference: String,
+        onUpdated: (String?) -> Unit
+    ) {
+        showMagicVariablePicker(
+            editingStepPosition = editingStepPosition,
+            targetInputId = targetInputId,
+            editingModule = editingModule,
+            currentParams = currentParams,
+            initialVariableReference = currentReference,
+            onVariablePillUpdated = onUpdated
+        )
     }
 
 
@@ -1719,6 +1778,12 @@ class WorkflowEditorActivity : BaseActivity() {
         editor.onMagicVariableRequested = { inputId, currentParams ->
             showMagicVariablePicker(triggerSteps.size + insertPosition, inputId, module, currentParams)
         }
+        editor.onInlineScriptVariableRequested = { inputId, currentParams, targetSheet ->
+            showInlineScriptVariablePicker(triggerSteps.size + insertPosition, inputId, module, currentParams, targetSheet)
+        }
+        editor.onVariablePillEditRequested = { inputId, currentParams, currentReference, onUpdated ->
+            showVariablePillEditor(triggerSteps.size + insertPosition, inputId, module, currentParams, currentReference, onUpdated)
+        }
 
         editor.onStartActivityForResult = { intent, callback ->
             pickerHandler?.launchIntentForResult(intent, callback)
@@ -1747,6 +1812,8 @@ class WorkflowEditorActivity : BaseActivity() {
         }
 
         editor.onMagicVariableRequested = { _, _ -> }
+        editor.onInlineScriptVariableRequested = { _, _, _ -> }
+        editor.onVariablePillEditRequested = { _, _, _, _ -> }
 
         editor.onStartActivityForResult = { intent, callback ->
             pickerHandler?.launchIntentForResult(intent, callback)
