@@ -11,6 +11,7 @@ import android.os.HandlerThread
 import android.view.Display
 import com.chaomixian.vflow.core.logging.DebugLogger
 import com.chaomixian.vflow.services.ShellManager
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -60,6 +61,7 @@ object VirtualDisplayManager {
             if (displayId > 0) {
                 DebugLogger.i(TAG, "虚拟屏幕创建成功: ID $displayId")
                 currentSession = VirtualDisplaySession(displayId, width, height, imageReader)
+                waitForFirstFrameLocked()
                 return displayId
             } else {
                 DebugLogger.e(TAG, "虚拟屏幕创建失败 (Shell返回 -1)")
@@ -67,6 +69,19 @@ object VirtualDisplayManager {
                 return -1
             }
         }
+    }
+
+    private suspend fun waitForFirstFrameLocked(timeoutMs: Long = 1500L) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            val bitmap = captureCurrentFrame()
+            if (bitmap != null) {
+                bitmap.recycle()
+                return
+            }
+            delay(100)
+        }
+        DebugLogger.w(TAG, "等待虚拟屏幕首帧超时，后续截图将继续重试")
     }
 
     /**
@@ -103,6 +118,11 @@ object VirtualDisplayManager {
      */
     fun getCurrentDisplayId(): Int {
         return currentSession?.displayId ?: -1
+    }
+
+    fun getCurrentSessionSize(): Pair<Int, Int>? {
+        val session = currentSession ?: return null
+        return session.width to session.height
     }
 
     /**

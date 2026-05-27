@@ -226,6 +226,10 @@ class AgentModule : BaseModule() {
             }
             // 将 displayId 注入到变量中，供 AgentTools 和 AgentUtils 使用
             context.setVariable("_target_display_id", VObjectFactory.from(targetDisplayId))
+            VirtualDisplayManager.getCurrentSessionSize()?.let { (width, height) ->
+                context.setVariable("_target_display_width", VObjectFactory.from(width))
+                context.setVariable("_target_display_height", VObjectFactory.from(height))
+            }
             DebugLogger.i("AgentModule", "Agent 将运行在 Display ID: $targetDisplayId")
         }
 
@@ -368,10 +372,11 @@ class AgentModule : BaseModule() {
             var screenWidth = displayMetrics.widthPixels
             var screenHeight = displayMetrics.heightPixels
 
-            // 如果使用虚拟屏幕，尺寸可能不同 (VirtualDisplayManager 默认为 1080x2400)
+            // 如果使用虚拟屏幕，使用真实会话尺寸，保证模型归一化坐标映射正确。
             if (targetDisplayId > 0) {
-                screenWidth = 1080
-                screenHeight = 2400
+                val size = VirtualDisplayManager.getCurrentSessionSize()
+                screenWidth = size?.first ?: screenWidth
+                screenHeight = size?.second ?: screenHeight
                 overlayManager.hideForScreenshot() // 隐藏悬浮窗
             }
 
@@ -612,9 +617,11 @@ class AgentModule : BaseModule() {
             // 现在 variables 是 Map<String, VObject>，使用 getVariableAsInt 获取
             val targetDisplayId = context.getVariableAsInt("_target_display_id") ?: 0
             if (targetDisplayId > 0) {
-                AgentUtils.killTopAppOnDisplay(context.applicationContext, targetDisplayId)
-                DebugLogger.i(TAG, "释放虚拟屏幕...")
-                VirtualDisplayManager.release()
+                withContext(NonCancellable) {
+                    AgentUtils.killTopAppOnDisplay(context.applicationContext, targetDisplayId)
+                    DebugLogger.i(TAG, "释放虚拟屏幕...")
+                    VirtualDisplayManager.release()
+                }
             }
             // 关闭悬浮窗
             withContext(NonCancellable) {

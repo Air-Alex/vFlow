@@ -25,6 +25,7 @@ import com.chaomixian.vflow.permissions.PermissionManager
 import com.chaomixian.vflow.services.ServiceStateBus
 import com.chaomixian.vflow.services.ShellManager
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.util.Calendar
 
 /**
@@ -54,16 +55,7 @@ object AgentUtils {
             if (displayId == VirtualDisplayManager.getCurrentDisplayId()) {
                 val bitmap = VirtualDisplayManager.captureCurrentFrame()
                 if (bitmap != null) {
-                    // 转 Base64
-                    val output = ByteArrayOutputStream()
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 80, output) // 80质量足够AI识别
-                    val base64 = Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP)
-                    val width = bitmap.width
-                    val height = bitmap.height
-                    bitmap.recycle()
-
-                    // 虚拟路径，仅作标识
-                    return ScreenshotResult(base64, "memory://virtual_display", width, height)
+                    return bitmapToScreenshotResult(bitmap, execContext.workDir, "virtual_display")
                 } else {
                     DebugLogger.w(TAG, "虚拟屏幕 (ID: $displayId) 内存帧为空，准备回退到 Shell...")
                 }
@@ -101,6 +93,21 @@ object AgentUtils {
             }
         }
         return ScreenshotResult(null, null, 0, 0)
+    }
+
+    private fun bitmapToScreenshotResult(bitmap: Bitmap, workDir: File, prefix: String): ScreenshotResult {
+        val timestamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss_SSS", java.util.Locale.getDefault()).format(java.util.Date())
+        val file = File(workDir, "${prefix}_$timestamp.jpg")
+        val output = ByteArrayOutputStream()
+        return try {
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output)
+            val bytes = output.toByteArray()
+            file.outputStream().use { it.write(bytes) }
+            val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+            ScreenshotResult(base64, Uri.fromFile(file).toString(), bitmap.width, bitmap.height)
+        } finally {
+            bitmap.recycle()
+        }
     }
 
     /**

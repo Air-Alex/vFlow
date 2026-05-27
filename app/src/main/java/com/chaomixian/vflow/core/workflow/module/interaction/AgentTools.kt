@@ -23,6 +23,7 @@ import com.chaomixian.vflow.core.types.complex.VImage
 import com.chaomixian.vflow.core.types.complex.VScreenElement
 import com.chaomixian.vflow.core.module.ModuleRegistry
 import com.chaomixian.vflow.core.utils.VFlowImeManager
+import com.chaomixian.vflow.core.utils.VirtualDisplayManager
 import com.chaomixian.vflow.services.ServiceStateBus
 import com.chaomixian.vflow.services.ShellManager
 import kotlinx.coroutines.CompletableDeferred
@@ -50,6 +51,14 @@ class AgentTools(private val context: ExecutionContext) {
     private fun getDisplayOption(): String {
         val id = targetDisplayId
         return if (id > 0) "-d $id" else ""
+    }
+
+    private fun targetScreenSize(): Pair<Int, Int> {
+        if (targetDisplayId > 0) {
+            VirtualDisplayManager.getCurrentSessionSize()?.let { return it }
+        }
+        val displayMetrics = appContext.resources.displayMetrics
+        return displayMetrics.widthPixels to displayMetrics.heightPixels
     }
 
     /**
@@ -373,8 +382,8 @@ class AgentTools(private val context: ExecutionContext) {
         val rect = Rect()
         node.getBoundsInScreen(rect)
 
-        val displayMetrics = appContext.resources.displayMetrics
-        val screenRect = Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels)
+        val (screenWidth, screenHeight) = targetScreenSize()
+        val screenRect = Rect(0, 0, screenWidth, screenHeight)
 
         // 坐标有效性检查
         if (rect.intersect(screenRect)) {
@@ -406,19 +415,23 @@ class AgentTools(private val context: ExecutionContext) {
      */
     private suspend fun clickByOCR(targetText: String): Boolean {
         // 1. 获取截图模块
-        val captureModule = ModuleRegistry.getModule("vflow.system.capture_screen") ?: return false
         val ocrModule = ModuleRegistry.getModule("vflow.interaction.ocr") ?: return false
 
-        // 2. 执行截图
-        // 使用临时的 Context，避免污染主流程变量
-        val captureContext = context.copy(
-            variables = mutableMapOf("mode" to VObjectFactory.from("auto"))
-        )
-        val captureRes = captureModule.execute(captureContext) { } // 静默执行
-
-        val imagePath = if (captureRes is ExecutionResult.Success) {
-            (captureRes.outputs["image"] as? VImage)?.uriString
-        } else null
+        val imagePath = if (targetDisplayId > 0) {
+            AgentUtils.captureScreen(appContext, context).path
+        } else {
+            // 使用临时的 Context，避免污染主流程变量
+            val captureModule = ModuleRegistry.getModule("vflow.system.capture_screen") ?: return false
+            val captureContext = context.copy(
+                variables = mutableMapOf("mode" to VObjectFactory.from("auto"))
+            )
+            val captureRes = captureModule.execute(captureContext) { } // 静默执行
+            if (captureRes is ExecutionResult.Success) {
+                (captureRes.outputs["image"] as? VImage)?.uriString
+            } else {
+                null
+            }
+        }
 
         if (imagePath == null) {
             DebugLogger.e(TAG, "OCR 准备失败: 无法截屏")
@@ -602,10 +615,10 @@ class AgentTools(private val context: ExecutionContext) {
     }
 
     suspend fun scroll(direction: String): String {
-        val displayMetrics = appContext.resources.displayMetrics
-        val cx = (displayMetrics.widthPixels / 2).toFloat()
-        val h = displayMetrics.heightPixels.toFloat()
-        val w = displayMetrics.widthPixels.toFloat()
+        val (screenWidth, screenHeight) = targetScreenSize()
+        val cx = (screenWidth / 2).toFloat()
+        val h = screenHeight.toFloat()
+        val w = screenWidth.toFloat()
         val cy = (h / 2)
         val path = Path()
 

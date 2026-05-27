@@ -1,11 +1,17 @@
 // 文件: main/java/com/chaomixian/vflow/services/ShizukuUserService.kt
 package com.chaomixian.vflow.services
 
+import android.annotation.SuppressLint
+import android.annotation.TargetApi
+import android.content.AttributionSource
 import android.content.Context
+import android.content.ContextWrapper
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.os.Process
 import android.view.Surface
 import com.chaomixian.vflow.core.logging.DebugLogger
 import kotlinx.coroutines.*
@@ -29,6 +35,7 @@ class ShizukuUserService(private val context: Context) : IShizukuUserService.Stu
         private const val RESULT_OUTPUT = "output"
         private const val RESULT_EXIT_CODE = "exitCode"
         private const val RESULT_SUCCESS = "success"
+        private const val SHELL_PACKAGE_NAME = "com.android.shell"
     }
 
     private data class ShellExecResult(
@@ -199,7 +206,8 @@ class ShizukuUserService(private val context: Context) : IShizukuUserService.Stu
         }
 
         return try {
-            val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+            val displayContext = createShellDisplayContext()
+            val displayManager = displayContext.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
 
             // Flag 组合优化：
             // VIRTUAL_DISPLAY_FLAG_PUBLIC (1): 允许其他应用显示。
@@ -231,6 +239,44 @@ class ShizukuUserService(private val context: Context) : IShizukuUserService.Stu
         } catch (e: Exception) {
             DebugLogger.e(TAG, "创建虚拟屏幕异常", e)
             -1
+        }
+    }
+
+    private fun createShellDisplayContext(): Context {
+        val base = try {
+            context.createPackageContext(SHELL_PACKAGE_NAME, Context.CONTEXT_IGNORE_SECURITY)
+        } catch (e: Exception) {
+            DebugLogger.w(TAG, "创建 shell package context 失败，回退到包装 app context: ${e.message}")
+            context
+        }
+        return ShellDisplayContext(base)
+    }
+
+    private class ShellDisplayContext(base: Context) : ContextWrapper(base) {
+        override fun getPackageName(): String = SHELL_PACKAGE_NAME
+
+        override fun getOpPackageName(): String = SHELL_PACKAGE_NAME
+
+        @TargetApi(Build.VERSION_CODES.S)
+        override fun getAttributionSource(): AttributionSource {
+            return AttributionSource.Builder(Process.SHELL_UID)
+                .setPackageName(SHELL_PACKAGE_NAME)
+                .build()
+        }
+
+        @SuppressLint("SoonBlockedPrivateApi")
+        override fun getSystemService(name: String): Any? {
+            val service = super.getSystemService(name) ?: return null
+            if (name == DISPLAY_SERVICE) {
+                try {
+                    val field = service.javaClass.getDeclaredField("mContext")
+                    field.isAccessible = true
+                    field.set(service, this)
+                } catch (e: ReflectiveOperationException) {
+                    DebugLogger.w(TAG, "替换 DisplayManager context 失败，继续使用 shell wrapper: ${e.message}")
+                }
+            }
+            return service
         }
     }
 

@@ -172,6 +172,10 @@ class AutoGLMModule : BaseModule() {
                 return ExecutionResult.Failure("环境错误", "虚拟屏幕创建失败。")
             }
             context.setVariable("_target_display_id", VObjectFactory.from(targetDisplayId))
+            VirtualDisplayManager.getCurrentSessionSize()?.let { (width, height) ->
+                context.setVariable("_target_display_width", VObjectFactory.from(width))
+                context.setVariable("_target_display_height", VObjectFactory.from(height))
+            }
             DebugLogger.i("AutoGLM", "AutoGLM 将运行在 Display ID: $targetDisplayId")
         }
 
@@ -275,10 +279,11 @@ class AutoGLMModule : BaseModule() {
             var screenWidth = displayMetrics.widthPixels
             var screenHeight = displayMetrics.heightPixels
 
-            // 如果使用虚拟屏幕，尺寸可能不同 (VirtualDisplayManager 默认为 1080x2400)
+            // 如果使用虚拟屏幕，使用真实会话尺寸，保证 AutoGLM 归一化坐标映射正确。
             if (targetDisplayId > 0) {
-                screenWidth = 1080
-                screenHeight = 2400
+                val size = VirtualDisplayManager.getCurrentSessionSize()
+                screenWidth = size?.first ?: screenWidth
+                screenHeight = size?.second ?: screenHeight
                 overlayManager.hideForScreenshot() // 隐藏悬浮窗
             }
 
@@ -541,11 +546,13 @@ class AutoGLMModule : BaseModule() {
             // 现在 variables 是 Map<String, VObject>，使用 getVariableAsInt 获取
             val targetDisplayId = context.getVariableAsInt("_target_display_id") ?: 0
             if (targetDisplayId > 0) {
-                // 先杀应用，防止跳回主屏
-                AgentUtils.killTopAppOnDisplay(context.applicationContext, targetDisplayId)
-                // 再释放屏幕
-                DebugLogger.i("AutoGLM", "释放虚拟屏幕...")
-                VirtualDisplayManager.release()
+                withContext(NonCancellable) {
+                    // 先杀应用，防止跳回主屏
+                    AgentUtils.killTopAppOnDisplay(context.applicationContext, targetDisplayId)
+                    // 再释放屏幕
+                    DebugLogger.i("AutoGLM", "释放虚拟屏幕...")
+                    VirtualDisplayManager.release()
+                }
             }
 
             // 关闭悬浮窗
