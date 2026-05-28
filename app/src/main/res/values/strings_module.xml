@@ -11,6 +11,7 @@
     <string name="category_template">模板</string>
     <string name="category_feishu">飞书</string>
     <string name="category_app_integration">应用集成</string>
+    <string name="category_external_extension">外部拓展</string>
     <string name="category_core">Core (Beta)</string>
     <string name="category_file">文件</string>
     <string name="category_shizuku">Shizuku</string>
@@ -3293,4 +3294,13 @@
     <string name="param_vflow_ui_content">内容</string>
     <string name="param_vflow_ui_content_optional">内容 (可选)</string>
     <string name="summary_vflow_core_set_nfc">NFC</string>
+    <string name="error_vflow_external_module_unavailable">扩展不可用</string>
+    <string name="error_vflow_external_module_missing">未找到提供模块 %1$s 的外部应用。</string>
+    <string name="error_vflow_external_module_connect_failed">无法连接到 %1$s。</string>
+    <string name="error_vflow_external_module_timeout_title">扩展超时</string>
+    <string name="error_vflow_external_module_timeout">%1$s 未在限定时间内返回。</string>
+    <string name="error_vflow_external_module_failed_title">扩展执行失败</string>
+    <string name="error_vflow_external_module_failed">外部扩展返回失败。</string>
+    <string name="error_vflow_external_module_exception_title">扩展执行异常</string>
+    <string name="error_vflow_external_module_unknown">发生了未知错误</string>
 </resources>

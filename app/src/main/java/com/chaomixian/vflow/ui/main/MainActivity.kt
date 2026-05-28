@@ -24,6 +24,7 @@ import com.chaomixian.vflow.core.telemetry.TelemetryManager
 import com.chaomixian.vflow.core.workflow.WorkflowPermissionRecovery
 import com.chaomixian.vflow.core.workflow.module.scripted.ModuleManager
 import com.chaomixian.vflow.core.workflow.module.triggers.handlers.TriggerHandlerRegistry
+import com.chaomixian.vflow.extension.ExternalModuleManager
 import com.chaomixian.vflow.services.ExecutionNotificationManager
 import com.chaomixian.vflow.services.PermissionGuardianService
 import com.chaomixian.vflow.services.ShellManager
@@ -191,6 +192,7 @@ class MainActivity : BaseActivity() {
 
         ModuleRegistry.initialize(applicationContext) // 初始化模块注册表
         ModuleManager.loadModules(this, true) // 初始化用户模块管理器
+        ExternalModuleManager.loadModulesAsync(this, true)
         TriggerHandlerRegistry.initialize() // 初始化触发器处理器注册表
         ExecutionNotificationManager.initialize(this) // 初始化通知管理器
         // 移除此处对 ExecutionLogger 的初始化，因为它已在 TriggerService 中完成

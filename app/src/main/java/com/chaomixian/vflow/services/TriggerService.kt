@@ -28,6 +28,7 @@ import com.chaomixian.vflow.core.workflow.module.triggers.KeyEventTriggerModule
 import com.chaomixian.vflow.core.workflow.module.triggers.handlers.ITriggerHandler
 import com.chaomixian.vflow.core.workflow.module.triggers.handlers.KeyEventTriggerHandler
 import com.chaomixian.vflow.core.workflow.module.triggers.handlers.TriggerHandlerRegistry
+import com.chaomixian.vflow.extension.ExternalModuleManager
 import com.chaomixian.vflow.permissions.PermissionManager
 import com.chaomixian.vflow.ui.common.AppearanceManager
 import kotlinx.coroutines.CoroutineScope
@@ -81,6 +82,7 @@ class TriggerService : Service() {
         DebugLogger.initialize(applicationContext) // 确保服务独立运行时也能初始化
         ModuleRegistry.initialize(applicationContext)
         ModuleManager.loadModules(applicationContext) // 注册用户模块
+        ExternalModuleManager.loadModulesAsync(applicationContext)
         TriggerHandlerRegistry.initialize() // 确保服务独立运行时也能初始化注册表
         ExecutionNotificationManager.initialize(this)
         LogManager.initialize(applicationContext)

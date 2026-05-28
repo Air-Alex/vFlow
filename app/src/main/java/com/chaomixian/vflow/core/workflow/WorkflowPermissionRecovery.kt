@@ -4,6 +4,7 @@ import android.content.Context
 import com.chaomixian.vflow.core.logging.DebugLogger
 import com.chaomixian.vflow.core.module.ModuleRegistry
 import com.chaomixian.vflow.core.workflow.module.scripted.ModuleManager
+import com.chaomixian.vflow.extension.ExternalModuleManager
 import com.chaomixian.vflow.permissions.PermissionManager
 
 object WorkflowPermissionRecovery {
@@ -14,6 +15,7 @@ object WorkflowPermissionRecovery {
         val appContext = context.applicationContext
         ModuleRegistry.initialize(appContext)
         ModuleManager.loadModules(appContext)
+        ExternalModuleManager.loadModulesAsync(appContext)
         val workflowManager = WorkflowManager(appContext)
         val recoverableWorkflows = workflowManager.getAllWorkflows().filter {
             it.wasEnabledBeforePermissionsLost && !it.isEnabled

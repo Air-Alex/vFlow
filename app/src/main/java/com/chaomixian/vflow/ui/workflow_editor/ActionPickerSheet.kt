@@ -25,6 +25,7 @@ import com.chaomixian.vflow.core.module.BaseModule
 import com.chaomixian.vflow.core.module.ModuleCategories
 import com.chaomixian.vflow.core.module.ModuleRegistry
 import com.chaomixian.vflow.core.module.RecentModulesManager
+import com.chaomixian.vflow.extension.ExternalModuleManager
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -113,6 +114,8 @@ class ActionPickerSheet : BottomSheetDialogFragment() {
         recyclerView.visibility = View.GONE
 
         lifecycleScope.launch(Dispatchers.IO) {
+            ExternalModuleManager.loadModules(requireContext().applicationContext)
+
             val categorizedModules = if (isTriggerPicker) {
                 ModuleRegistry.getModulesByCategory().filterKeys { it == ModuleCategories.TRIGGER }
             } else {

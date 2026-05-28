@@ -11,6 +11,7 @@
     <string name="category_template">Templates</string>
     <string name="category_feishu">Feishu</string>
     <string name="category_app_integration">App Integrations</string>
+    <string name="category_external_extension">External Extensions</string>
     <string name="category_core">Core (Beta)</string>
     <string name="category_file">File</string>
     <string name="category_shizuku">Shizuku</string>
@@ -3290,4 +3291,13 @@
     <string name="msg_vflow_ui_screen_flash_showing">Showing screen flash...</string>
 
     <string name="summary_vflow_core_set_nfc">NFC</string>
+    <string name="error_vflow_external_module_unavailable">Extension unavailable</string>
+    <string name="error_vflow_external_module_missing">Could not find the external app that provides %1$s.</string>
+    <string name="error_vflow_external_module_connect_failed">Could not connect to %1$s.</string>
+    <string name="error_vflow_external_module_timeout_title">Extension timed out</string>
+    <string name="error_vflow_external_module_timeout">%1$s did not return in time.</string>
+    <string name="error_vflow_external_module_failed_title">Extension failed</string>
+    <string name="error_vflow_external_module_failed">The external extension returned a failure.</string>
+    <string name="error_vflow_external_module_exception_title">Extension exception</string>
+    <string name="error_vflow_external_module_unknown">An unknown error occurred.</string>
 </resources>

@@ -27,6 +27,7 @@ object ModuleCategories {
     const val UI = "ui"
     const val FEISHU = "feishu"
     const val APP_INTEGRATION = "app_integration"
+    const val EXTERNAL_EXTENSION = "external_extension"
     const val USER_MODULE = "user_module"
 
     private val specs = listOf(
@@ -43,7 +44,8 @@ object ModuleCategories {
         ModuleCategorySpec(UI, R.string.category_ui, R.color.static_pill_color, 10, "UI 组件"),
         ModuleCategorySpec(FEISHU, R.string.category_feishu, R.color.category_feishu, 11, "飞书"),
         ModuleCategorySpec(APP_INTEGRATION, R.string.category_app_integration, R.color.category_app_integration, 12, "应用集成"),
-        ModuleCategorySpec(USER_MODULE, null, R.color.category_user_module, 13, "用户模块")
+        ModuleCategorySpec(EXTERNAL_EXTENSION, R.string.category_external_extension, R.color.category_external_extension, 13, "外部拓展"),
+        ModuleCategorySpec(USER_MODULE, null, R.color.category_user_module, 14, "用户模块")
     )
 
     private val specsById = specs.associateBy { it.id }

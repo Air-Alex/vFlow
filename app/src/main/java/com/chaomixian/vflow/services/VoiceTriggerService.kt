@@ -26,6 +26,7 @@ import com.chaomixian.vflow.core.workflow.WorkflowManager
 import com.chaomixian.vflow.core.workflow.model.Workflow
 import com.chaomixian.vflow.core.workflow.module.scripted.ModuleManager
 import com.chaomixian.vflow.core.workflow.module.triggers.handlers.VoiceTriggerHandler
+import com.chaomixian.vflow.extension.ExternalModuleManager
 import com.chaomixian.vflow.permissions.PermissionManager
 import com.chaomixian.vflow.speech.voice.VoiceTriggerConfig
 import com.chaomixian.vflow.speech.voice.VoiceTriggerModelManager
@@ -144,6 +145,7 @@ class VoiceTriggerService : Service() {
         DebugLogger.initialize(applicationContext)
         ModuleRegistry.initialize(applicationContext)
         ModuleManager.loadModules(applicationContext)
+        ExternalModuleManager.loadModulesAsync(applicationContext)
         ExecutionNotificationManager.initialize(this)
         LogManager.initialize(applicationContext)
         ExecutionLogger.initialize(this, serviceScope)

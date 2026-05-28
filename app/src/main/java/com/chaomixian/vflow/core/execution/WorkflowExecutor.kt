@@ -26,6 +26,7 @@ import com.chaomixian.vflow.core.workflow.model.ActionStepExecutionSettings
 import com.chaomixian.vflow.core.workflow.model.Workflow
 import com.chaomixian.vflow.core.workflow.model.WorkflowReentryBehavior
 import com.chaomixian.vflow.core.workflow.module.logic.*
+import com.chaomixian.vflow.extension.ExternalModuleManager
 import com.chaomixian.vflow.services.ExecutionNotificationManager
 import com.chaomixian.vflow.services.ExecutionNotificationState
 import com.chaomixian.vflow.services.ExecutionUIService
@@ -428,7 +429,11 @@ object WorkflowExecutor {
 
         while (pc < workflow.steps.size && coroutineContext.isActive) {
             val step = workflow.steps[pc]
-            val module = ModuleRegistry.getModule(step.moduleId)
+            var module = ModuleRegistry.getModule(step.moduleId)
+            if (module == null) {
+                ExternalModuleManager.loadModules(initialContext.applicationContext, force = true)
+                module = ModuleRegistry.getModule(step.moduleId)
+            }
             if (module == null) {
                 DebugLogger.w("WorkflowExecutor", "模块未找到: ${step.moduleId}")
                 pc++

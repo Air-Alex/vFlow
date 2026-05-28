@@ -1563,8 +1563,10 @@ private suspend fun deleteLocalModule(
             targetDir.deleteRecursively()
         }
         ModuleRegistry.reset()
+        com.chaomixian.vflow.extension.ExternalModuleManager.reset()
         ModuleRegistry.initialize(context.applicationContext)
         ModuleManager.loadModules(context.applicationContext, force = true)
+        com.chaomixian.vflow.extension.ExternalModuleManager.loadModules(context.applicationContext, force = true)
     }
     Toast.makeText(
         context,
