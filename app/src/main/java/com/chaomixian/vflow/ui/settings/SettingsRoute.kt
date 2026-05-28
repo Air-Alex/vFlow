@@ -207,32 +207,26 @@ fun SettingsRoute(
                 }
             },
             onSetAutoEnableAccessibility = { enabled ->
-                val canUseShell = ShellManager.isShizukuActive(context) || ShellManager.isRootAvailable()
-                if (!canUseShell) {
-                    context.toast(R.string.settings_toast_operation_failed)
-                    settingsViewModel.refresh(context)
-                } else {
-                    activity.lifecycleScope.launch {
-                        val success = withContext(Dispatchers.IO) {
-                            if (enabled) {
-                                ShellManager.enableAccessibilityService(context)
-                            } else {
-                                ShellManager.disableAccessibilityService(context)
-                            }
-                        }
-                        if (success) {
-                            settingsViewModel.setAutoEnableAccessibility(context, enabled)
-                            context.toast(
-                                if (enabled) {
-                                    R.string.settings_toast_auto_accessibility_enabled
-                                } else {
-                                    R.string.settings_toast_auto_accessibility_disabled
-                                }
-                            )
+                activity.lifecycleScope.launch {
+                    val success = withContext(Dispatchers.IO) {
+                        if (enabled) {
+                            ShellManager.enableAccessibilityService(context)
                         } else {
-                            context.toast(R.string.settings_toast_operation_failed)
-                            settingsViewModel.refresh(context)
+                            ShellManager.disableAccessibilityService(context)
                         }
+                    }
+                    if (success) {
+                        settingsViewModel.setAutoEnableAccessibility(context, enabled)
+                        context.toast(
+                            if (enabled) {
+                                R.string.settings_toast_auto_accessibility_enabled
+                            } else {
+                                R.string.settings_toast_auto_accessibility_disabled
+                            }
+                        )
+                    } else {
+                        context.toast(R.string.settings_toast_operation_failed)
+                        settingsViewModel.refresh(context)
                     }
                 }
             },

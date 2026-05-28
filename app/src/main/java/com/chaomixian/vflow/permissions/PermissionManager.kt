@@ -165,6 +165,15 @@ object PermissionManager {
         descriptionStringRes = R.string.permission_desc_write_settings
     )
 
+    val WRITE_SECURE_SETTINGS = Permission(
+        id = Manifest.permission.WRITE_SECURE_SETTINGS,
+        name = "修改安全设置",
+        description = "允许 vFlow 直接修改安全系统设置，用于自动开启无障碍服务等操作。",
+        type = PermissionType.SPECIAL,
+        nameStringRes = R.string.permission_name_write_secure_settings,
+        descriptionStringRes = R.string.permission_desc_write_secure_settings
+    )
+
     // 定义精确定位权限
     val LOCATION = Permission(
         id = Manifest.permission.ACCESS_FINE_LOCATION,
@@ -237,7 +246,7 @@ object PermissionManager {
     val allKnownPermissions = listOf(
         CORE, CORE_ROOT,
         ACCESSIBILITY, NOTIFICATIONS, MICROPHONE, OVERLAY, NOTIFICATION_LISTENER_SERVICE,
-        NOTIFICATION_POLICY, STORAGE, SMS, READ_PHONE_STATE, BLUETOOTH, WRITE_SETTINGS, LOCATION, SHIZUKU,
+        NOTIFICATION_POLICY, STORAGE, SMS, READ_PHONE_STATE, BLUETOOTH, WRITE_SETTINGS, WRITE_SECURE_SETTINGS, LOCATION, SHIZUKU,
         IGNORE_BATTERY_OPTIMIZATIONS, EXACT_ALARM, ROOT, USAGE_STATS
     )
 
@@ -355,6 +364,27 @@ object PermissionManager {
                 DebugLogger.e(TAG, "自动授予修改设置权限失败", e)
             }
             return false
+        }
+    }
+
+    private val writeSecureSettingsStrategy = object : PermissionStrategy {
+        override fun isGranted(context: Context, permission: Permission): Boolean =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.WRITE_SECURE_SETTINGS
+            ) == PackageManager.PERMISSION_GRANTED
+
+        override fun createRequestIntent(context: Context, permission: Permission): Intent? = null
+
+        override suspend fun autoGrant(context: Context): Boolean {
+            return try {
+                val command = "pm grant ${context.packageName} ${Manifest.permission.WRITE_SECURE_SETTINGS}"
+                val result = ShellManager.execShellCommand(context, command)
+                !result.startsWith("Error")
+            } catch (e: Exception) {
+                DebugLogger.e(TAG, "自动授予安全设置权限失败", e)
+                false
+            }
         }
     }
 
@@ -593,6 +623,7 @@ object PermissionManager {
         ACCESSIBILITY.id to accessibilityStrategy,
         OVERLAY.id to overlayStrategy,
         WRITE_SETTINGS.id to writeSettingsStrategy,
+        WRITE_SECURE_SETTINGS.id to writeSecureSettingsStrategy,
         IGNORE_BATTERY_OPTIMIZATIONS.id to batteryStrategy,
         NOTIFICATION_LISTENER_SERVICE.id to notificationListenerStrategy,
         NOTIFICATION_POLICY.id to notificationPolicyStrategy,
@@ -735,7 +766,7 @@ object PermissionManager {
     fun getAllRegisteredPermissions(): List<Permission> {
         return (ModuleRegistry.getAllModules()
             .map { it.getRequiredPermissions(null) }
-            .flatten() + CORE + CORE_ROOT + IGNORE_BATTERY_OPTIMIZATIONS + STORAGE)
+            .flatten() + CORE + CORE_ROOT + WRITE_SECURE_SETTINGS + IGNORE_BATTERY_OPTIMIZATIONS + STORAGE)
             .distinct()
     }
 

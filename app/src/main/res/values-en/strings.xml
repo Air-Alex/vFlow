@@ -1185,6 +1185,8 @@
     <string name="permission_desc_bluetooth">Used to control device Bluetooth on/off state.</string>
     <string name="permission_name_write_settings">Modify System Settings</string>
     <string name="permission_desc_write_settings">Used for system-level settings like screen brightness adjustment.</string>
+    <string name="permission_name_write_secure_settings">Modify Secure Settings</string>
+    <string name="permission_desc_write_secure_settings">Allows vFlow to directly modify secure system settings for operations such as enabling the accessibility service automatically.</string>
     <string name="permission_name_location">Fine Location</string>
     <string name="permission_desc_location">Required on some Android versions to access saved Wi-Fi lists.</string>
     <string name="permission_name_background_location">Background Location Access</string>

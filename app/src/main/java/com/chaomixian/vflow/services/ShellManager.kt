@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.IBinder
+import android.provider.Settings
 import android.view.Surface
 import com.chaomixian.vflow.core.logging.DebugLogger
 import com.chaomixian.vflow.permissions.Permission
@@ -452,11 +453,15 @@ object ShellManager {
     }
 
     /**
-     * 通过 Shell 开启无障碍服务。
-     * 使用 AUTO 模式，自动适配 Root 或 Shizuku。
+     * 开启无障碍服务。
+     * 优先使用 WRITE_SECURE_SETTINGS 直接写入，失败后使用 AUTO Shell 模式。
      * @return 返回操作是否成功。
      */
     suspend fun enableAccessibilityService(context: Context): Boolean {
+        if (enableAccessibilityServiceViaSecureSettings(context)) {
+            return true
+        }
+
         val serviceName = AccessibilityServiceStatus.getServiceId(context)
         // 1. 读取当前已启用的服务列表
         val currentServices = execShellCommand(context, "settings get secure enabled_accessibility_services")
@@ -505,11 +510,15 @@ object ShellManager {
     }
 
     /**
-     * 通过 Shell 关闭无障碍服务。
-     * 使用 AUTO 模式，自动适配 Root 或 Shizuku。
+     * 关闭无障碍服务。
+     * 优先使用 WRITE_SECURE_SETTINGS 直接写入，失败后使用 AUTO Shell 模式。
      * @return 返回操作是否成功。
      */
     suspend fun disableAccessibilityService(context: Context): Boolean {
+        if (disableAccessibilityServiceViaSecureSettings(context)) {
+            return true
+        }
+
         val serviceName = AccessibilityServiceStatus.getServiceId(context)
         // 1. 读取当前服务列表
         val currentServices = execShellCommand(context, "settings get secure enabled_accessibility_services")
@@ -544,7 +553,92 @@ object ShellManager {
         return enableAccessibilityService(context)
     }
 
+    private fun canWriteSecureSettings(context: Context): Boolean {
+        return context.checkSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS) ==
+            PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun enableAccessibilityServiceViaSecureSettings(context: Context): Boolean {
+        if (!canWriteSecureSettings(context)) {
+            return false
+        }
+
+        return try {
+            val serviceName = AccessibilityServiceStatus.getServiceId(context)
+            val currentServices = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            )
+            val serviceList = currentServices
+                .orEmpty()
+                .split(':')
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .toMutableList()
+
+            if (serviceList.none { it.equals(serviceName, ignoreCase = true) }) {
+                serviceList += serviceName
+                Settings.Secure.putString(
+                    context.contentResolver,
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                    serviceList.joinToString(":")
+                )
+            }
+            Settings.Secure.putInt(context.contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED, 1)
+            DebugLogger.d(TAG, "已通过 WRITE_SECURE_SETTINGS 启用无障碍服务。")
+            true
+        } catch (e: Exception) {
+            DebugLogger.w(TAG, "通过 WRITE_SECURE_SETTINGS 启用无障碍服务失败，回退到 Shell。", e)
+            false
+        }
+    }
+
+    private fun disableAccessibilityServiceViaSecureSettings(context: Context): Boolean {
+        if (!canWriteSecureSettings(context)) {
+            return false
+        }
+
+        return try {
+            val serviceName = AccessibilityServiceStatus.getServiceId(context)
+            val currentServices = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            )
+            if (currentServices.isNullOrBlank()) {
+                return true
+            }
+
+            val serviceList = currentServices
+                .split(':')
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .toMutableList()
+            val removed = serviceList.removeAll { it.equals(serviceName, ignoreCase = true) }
+            if (!removed) {
+                return true
+            }
+
+            Settings.Secure.putString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                serviceList.joinToString(":")
+            )
+            if (serviceList.isEmpty()) {
+                Settings.Secure.putInt(context.contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED, 0)
+            }
+            DebugLogger.d(TAG, "已通过 WRITE_SECURE_SETTINGS 禁用无障碍服务。")
+            true
+        } catch (e: Exception) {
+            DebugLogger.w(TAG, "通过 WRITE_SECURE_SETTINGS 禁用无障碍服务失败，回退到 Shell。", e)
+            false
+        }
+    }
+
     suspend fun migrateAccessibilityServiceSetting(context: Context, disguisedEnabled: Boolean): Boolean {
+        if (migrateAccessibilityServiceSettingViaSecureSettings(context, disguisedEnabled)) {
+            return true
+        }
+
         if (!isShizukuActive(context) && !isRootAvailable()) {
             DebugLogger.w(TAG, "跳过无障碍服务设置迁移：Shizuku/Root 不可用")
             return false
@@ -582,6 +676,45 @@ object ShellManager {
         execShellCommand(context, "settings put secure accessibility_enabled 1")
         DebugLogger.d(TAG, "已通过 Shell 迁移无障碍服务设置。")
         return true
+    }
+
+    private fun migrateAccessibilityServiceSettingViaSecureSettings(
+        context: Context,
+        disguisedEnabled: Boolean
+    ): Boolean {
+        if (!canWriteSecureSettings(context)) {
+            return false
+        }
+
+        return try {
+            val currentServices = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            )
+            val originalServiceId = AccessibilityServiceStatus.getOriginalServiceId(context)
+            val disguisedServiceId = AccessibilityServiceStatus.getDisguisedServiceId(context)
+            val targetServiceId = if (disguisedEnabled) disguisedServiceId else originalServiceId
+            val sourceServiceId = if (disguisedEnabled) originalServiceId else disguisedServiceId
+            val migratedServices = AccessibilityServiceStatus.replaceServiceId(
+                enabledServicesSetting = currentServices,
+                fromServiceId = sourceServiceId,
+                toServiceId = targetServiceId
+            )
+
+            if (migratedServices != currentServices.orEmpty()) {
+                Settings.Secure.putString(
+                    context.contentResolver,
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+                    migratedServices
+                )
+            }
+            Settings.Secure.putInt(context.contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED, 1)
+            DebugLogger.d(TAG, "已通过 WRITE_SECURE_SETTINGS 迁移无障碍服务设置。")
+            true
+        } catch (e: Exception) {
+            DebugLogger.w(TAG, "通过 WRITE_SECURE_SETTINGS 迁移无障碍服务设置失败，回退到 Shell。", e)
+            false
+        }
     }
 
     /**

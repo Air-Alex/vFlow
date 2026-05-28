@@ -178,7 +178,23 @@ class PermissionActivity : BaseActivity() {
                 }
                 // 使用 PermissionManager 提供的统一接口获取 Intent
                 val intent = PermissionManager.getSpecialPermissionIntent(this, permission)
-                intent?.let { appSettingsLauncher.launch(it) }
+                if (intent != null) {
+                    appSettingsLauncher.launch(intent)
+                } else {
+                    lifecycleScope.launch {
+                        toast(R.string.permission_grant_all_started)
+                        val success = PermissionManager.autoGrantPermission(this@PermissionActivity, permission)
+                        kotlinx.coroutines.delay(300)
+                        refreshPermissionsStatus()
+                        toast(
+                            if (success) {
+                                getString(R.string.permission_grant_all_success, 1)
+                            } else {
+                                getString(R.string.permission_grant_all_failed, 1)
+                            }
+                        )
+                    }
+                }
             }
         }
     }

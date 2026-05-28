@@ -1185,6 +1185,8 @@
     <string name="permission_desc_bluetooth">用于控制设备的蓝牙开关状态。</string>
     <string name="permission_name_write_settings">修改系统设置</string>
     <string name="permission_desc_write_settings">用于调整屏幕亮度等系统级别的设置。</string>
+    <string name="permission_name_write_secure_settings">修改安全设置</string>
+    <string name="permission_desc_write_secure_settings">允许 vFlow 直接修改安全系统设置，用于自动开启无障碍服务等操作。</string>
     <string name="permission_name_location">精确定位</string>
     <string name="permission_desc_location">在部分安卓版本上，获取已保存的Wi-Fi列表需要此权限。</string>
     <string name="permission_name_background_location">后台位置访问</string>
