@@ -596,6 +596,10 @@ fun SettingsScreen(
                     subtitle = shellPreferenceSubtitle,
                     primaryLabel = shellShizukuLabel,
                     secondaryLabel = shellRootLabel,
+                    coreLabel = stringResource(R.string.settings_btn_shell_core),
+                    corePermissionDesc = stringResource(R.string.settings_core_shell_permission_desc),
+                    coreShellLabel = stringResource(R.string.settings_btn_shell_core_shell),
+                    coreRootLabel = stringResource(R.string.settings_btn_shell_core_root),
                     selectedMode = uiState.defaultShellMode,
                     position = SettingsGroupPosition.Top,
                     onModeSelected = actions.onSetDefaultShellMode
@@ -1170,6 +1174,10 @@ private fun ShellModeCard(
     subtitle: String,
     primaryLabel: String,
     secondaryLabel: String,
+    coreLabel: String,
+    corePermissionDesc: String,
+    coreShellLabel: String,
+    coreRootLabel: String,
     selectedMode: String,
     position: SettingsGroupPosition,
     onModeSelected: (String) -> Unit
@@ -1196,10 +1204,19 @@ private fun ShellModeCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
             ) {
-                listOf("shizuku", "root").forEachIndexed { index, mode ->
+                val modes = listOf(
+                    "shizuku" to primaryLabel,
+                    "root" to secondaryLabel,
+                    "core" to coreLabel
+                )
+                modes.forEachIndexed { index, (mode, label) ->
                     ToggleButton(
                         modifier = Modifier.weight(1f),
-                        checked = selectedMode == mode,
+                        checked = if (mode == "core") {
+                            selectedMode == "core" || selectedMode == "core_root"
+                        } else {
+                            selectedMode == mode
+                        },
                         onCheckedChange = { checked ->
                             if (checked && selectedMode != mode) {
                                 onModeSelected(mode)
@@ -1207,12 +1224,47 @@ private fun ShellModeCard(
                         },
                         shapes = when (index) {
                             0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                            else -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                            modes.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                            else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                         }
                     ) {
-                        Text(
-                            text = if (mode == "root") secondaryLabel else primaryLabel
-                        )
+                        Text(text = label)
+                    }
+                }
+            }
+
+            if (selectedMode == "core" || selectedMode == "core_root") {
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    text = corePermissionDesc,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
+                ) {
+                    val modes = listOf(
+                        "core" to coreShellLabel,
+                        "core_root" to coreRootLabel
+                    )
+                    modes.forEachIndexed { index, (mode, label) ->
+                        ToggleButton(
+                            modifier = Modifier.weight(1f),
+                            checked = selectedMode == mode,
+                            onCheckedChange = { checked ->
+                                if (checked && selectedMode != mode) {
+                                    onModeSelected(mode)
+                                }
+                            },
+                            shapes = when (index) {
+                                0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                else -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                            }
+                        ) {
+                            Text(text = label)
+                        }
                     }
                 }
             }

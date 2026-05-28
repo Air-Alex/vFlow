@@ -23,6 +23,8 @@ class ShellCommandModule : BaseModule() {
         private const val MODE_AUTO = "auto"
         private const val MODE_SHIZUKU = "shizuku"
         private const val MODE_ROOT = "root"
+        private const val MODE_CORE = "core"
+        private const val MODE_CORE_ROOT = "core_root"
     }
 
     override val id = "vflow.shizuku.shell_command"
@@ -37,16 +39,16 @@ class ShellCommandModule : BaseModule() {
     )
     override val aiMetadata = directToolMetadata(
         riskLevel = AiModuleRiskLevel.HIGH,
-        directToolDescription = "Run an arbitrary shell command through auto, Shizuku, or root mode. Use only when safer dedicated modules cannot complete the task.",
+        directToolDescription = "Run an arbitrary shell command through auto, Shizuku, root, Core, or Core Root mode. Use only when safer dedicated modules cannot complete the task.",
         workflowStepDescription = "Run an arbitrary shell command.",
         inputHints = mapOf(
-            "mode" to "Preferred privilege mode. Leave auto unless the user explicitly requires Shizuku or root.",
+            "mode" to "Preferred privilege mode. Leave auto unless the user explicitly requires Shizuku, root, Core, or Core Root.",
             "command" to "Exact shell command string to run.",
         ),
         requiredInputIds = setOf("command"),
     )
 
-    private val modeOptions = listOf(MODE_AUTO, MODE_SHIZUKU, MODE_ROOT)
+    private val modeOptions = listOf(MODE_AUTO, MODE_SHIZUKU, MODE_ROOT, MODE_CORE, MODE_CORE_ROOT)
 
     // 动态权限声明
     override fun getRequiredPermissions(step: ActionStep?): List<Permission> {
@@ -54,6 +56,8 @@ class ShellCommandModule : BaseModule() {
         return when (mode) {
             MODE_ROOT -> listOf(PermissionManager.ROOT)
             MODE_SHIZUKU -> listOf(PermissionManager.SHIZUKU)
+            MODE_CORE -> listOf(PermissionManager.CORE)
+            MODE_CORE_ROOT -> listOf(PermissionManager.CORE_ROOT)
             // 自动模式下，根据全局设置返回
             else -> ShellManager.getRequiredPermissions(com.chaomixian.vflow.core.logging.LogManager.applicationContext)
         }
@@ -71,7 +75,9 @@ class ShellCommandModule : BaseModule() {
             optionsStringRes = listOf(
                 R.string.option_vflow_shizuku_shell_command_mode_auto,
                 R.string.option_vflow_shizuku_shell_command_mode_shizuku,
-                R.string.option_vflow_shizuku_shell_command_mode_root
+                R.string.option_vflow_shizuku_shell_command_mode_root,
+                R.string.option_vflow_shizuku_shell_command_mode_core,
+                R.string.option_vflow_shizuku_shell_command_mode_core_root
             ),
             legacyValueMap = mapOf(
                 "自动" to MODE_AUTO,
@@ -134,6 +140,8 @@ class ShellCommandModule : BaseModule() {
         val mode = when (modeStr) {
             MODE_ROOT -> ShellManager.ShellMode.ROOT
             MODE_SHIZUKU -> ShellManager.ShellMode.SHIZUKU
+            MODE_CORE -> ShellManager.ShellMode.CORE
+            MODE_CORE_ROOT -> ShellManager.ShellMode.CORE_ROOT
             else -> ShellManager.ShellMode.AUTO
         }
 

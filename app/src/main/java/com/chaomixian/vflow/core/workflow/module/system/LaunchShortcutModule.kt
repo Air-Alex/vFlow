@@ -29,7 +29,9 @@ class LaunchShortcutModule : BaseModule() {
         private const val MODE_AUTO = "auto"
         private const val MODE_SHIZUKU = "shizuku"
         private const val MODE_ROOT = "root"
-        private val MODE_OPTIONS = listOf(MODE_AUTO, MODE_SHIZUKU, MODE_ROOT)
+        private const val MODE_CORE = "core"
+        private const val MODE_CORE_ROOT = "core_root"
+        private val MODE_OPTIONS = listOf(MODE_AUTO, MODE_SHIZUKU, MODE_ROOT, MODE_CORE, MODE_CORE_ROOT)
     }
 
     override val id = "vflow.system.launch_shortcut"
@@ -50,7 +52,7 @@ class LaunchShortcutModule : BaseModule() {
             "shortcutLabel" to "Display label of the selected shortcut.",
             "packageName" to "Android package that owns the selected shortcut.",
             "launchCommand" to "Resolved shell launch command for the shortcut.",
-            "mode" to "Shell privilege mode. Leave auto unless the user explicitly requires Shizuku or root."
+            "mode" to "Shell privilege mode. Leave auto unless the user explicitly requires Shizuku, root, Core, or Core Root."
         ),
         requiredInputIds = setOf("launchCommand")
     )
@@ -62,6 +64,8 @@ class LaunchShortcutModule : BaseModule() {
         return when (mode) {
             MODE_ROOT -> listOf(PermissionManager.ROOT)
             MODE_SHIZUKU -> listOf(PermissionManager.SHIZUKU)
+            MODE_CORE -> listOf(PermissionManager.CORE)
+            MODE_CORE_ROOT -> listOf(PermissionManager.CORE_ROOT)
             else -> ShellManager.getRequiredPermissions(LogManager.applicationContext)
         }
     }
@@ -108,7 +112,9 @@ class LaunchShortcutModule : BaseModule() {
             optionsStringRes = listOf(
                 R.string.option_vflow_shizuku_shell_command_mode_auto,
                 R.string.option_vflow_shizuku_shell_command_mode_shizuku,
-                R.string.option_vflow_shizuku_shell_command_mode_root
+                R.string.option_vflow_shizuku_shell_command_mode_root,
+                R.string.option_vflow_shizuku_shell_command_mode_core,
+                R.string.option_vflow_shizuku_shell_command_mode_core_root
             )
         )
     )
@@ -159,6 +165,8 @@ class LaunchShortcutModule : BaseModule() {
         val mode = when (modeValue) {
             MODE_ROOT -> ShellManager.ShellMode.ROOT
             MODE_SHIZUKU -> ShellManager.ShellMode.SHIZUKU
+            MODE_CORE -> ShellManager.ShellMode.CORE
+            MODE_CORE_ROOT -> ShellManager.ShellMode.CORE_ROOT
             else -> ShellManager.ShellMode.AUTO
         }
 

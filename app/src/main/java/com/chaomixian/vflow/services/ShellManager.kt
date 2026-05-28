@@ -37,9 +37,11 @@ object ShellManager {
      * Shell 执行模式
      */
     enum class ShellMode {
-        AUTO,    // 自动：根据用户在设置中的偏好决定
-        SHIZUKU, // 强制使用 Shizuku
-        ROOT     // 强制使用 Root
+        AUTO,      // 自动：根据用户在设置中的偏好决定
+        SHIZUKU,   // 强制使用 Shizuku
+        ROOT,      // 强制使用 Root
+        CORE,      // 强制使用 vFlow Core Shell worker
+        CORE_ROOT  // 强制使用 vFlow Core Root worker
     }
 
     data class ExecutableDeployResult(
@@ -70,10 +72,11 @@ object ShellManager {
     fun getRequiredPermissions(context: Context): List<Permission> {
         val prefs = context.getSharedPreferences("vFlowPrefs", Context.MODE_PRIVATE)
         val defaultMode = prefs.getString("default_shell_mode", "shizuku")
-        return if (defaultMode == "root") {
-            listOf(PermissionManager.ROOT)
-        } else {
-            listOf(PermissionManager.SHIZUKU)
+        return when (defaultMode) {
+            "root" -> listOf(PermissionManager.ROOT)
+            "core" -> listOf(PermissionManager.CORE)
+            "core_root" -> listOf(PermissionManager.CORE_ROOT)
+            else -> listOf(PermissionManager.SHIZUKU)
         }
     }
 
@@ -233,16 +236,22 @@ object ShellManager {
             val finalMode = if (mode == ShellMode.AUTO) {
                 val prefs = context.getSharedPreferences("vFlowPrefs", Context.MODE_PRIVATE)
                 val defaultMode = prefs.getString("default_shell_mode", "shizuku")
-                if (defaultMode == "root") ShellMode.ROOT else ShellMode.SHIZUKU
+                when (defaultMode) {
+                    "root" -> ShellMode.ROOT
+                    "core" -> ShellMode.CORE
+                    "core_root" -> ShellMode.CORE_ROOT
+                    else -> ShellMode.SHIZUKU
+                }
             } else {
                 mode
             }
 
             // 根据模式分发执行
-            if (finalMode == ShellMode.ROOT) {
-                executeRootCommand(command)
-            } else {
-                executeShizukuCommand(context, command)
+            when (finalMode) {
+                ShellMode.ROOT -> executeRootCommand(command)
+                ShellMode.CORE -> executeCoreCommand(context, command, VFlowCoreBridge.ExecMode.SHELL)
+                ShellMode.CORE_ROOT -> executeCoreCommand(context, command, VFlowCoreBridge.ExecMode.ROOT)
+                else -> executeShizukuCommand(context, command)
             }
         }
     }
@@ -357,6 +366,48 @@ object ShellManager {
         } catch (e: Exception) {
             DebugLogger.w(TAG, "Failed to start root shell with su -mm, fallback to plain su", e)
             Runtime.getRuntime().exec(ROOT_SHELL_FALLBACK_COMMANDS)
+        }
+    }
+
+    private suspend fun executeCoreCommand(
+        context: Context,
+        command: String,
+        mode: VFlowCoreBridge.ExecMode
+    ): ShellCommandResult {
+        return try {
+            if (!VFlowCoreBridge.connect(context)) {
+                return ShellCommandResult(
+                    output = "Error: vFlow Core 未运行或连接失败",
+                    exitCode = -1,
+                    success = false
+                )
+            }
+
+            if (mode == VFlowCoreBridge.ExecMode.ROOT &&
+                VFlowCoreBridge.privilegeMode != VFlowCoreBridge.PrivilegeMode.ROOT
+            ) {
+                return ShellCommandResult(
+                    output = "Error: vFlow Core 未以 Root 权限运行",
+                    exitCode = -1,
+                    success = false
+                )
+            }
+
+            val result = VFlowCoreBridge.execWithResult(command, mode, context)
+            ShellCommandResult(
+                output = result.output,
+                exitCode = result.exitCode,
+                success = result.success
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            DebugLogger.e(TAG, "Core execution failed", e)
+            ShellCommandResult(
+                output = "Error: ${e.message}",
+                exitCode = -1,
+                success = false
+            )
         }
     }
 

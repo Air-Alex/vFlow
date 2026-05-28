@@ -414,6 +414,10 @@
     <string name="settings_shell_preference_desc">For executing screenshots, Shell commands, and other operations</string>
     <string name="settings_btn_shell_shizuku">Shizuku</string>
     <string name="settings_btn_shell_root">Root</string>
+    <string name="settings_btn_shell_core">Core</string>
+    <string name="settings_core_shell_permission_desc">Choose Core\'s default execution permission</string>
+    <string name="settings_btn_shell_core_shell">Core(Shell)</string>
+    <string name="settings_btn_shell_core_root">Core(Root)</string>
     <string name="settings_button_run_diagnostic">Run Key Diagnostic</string>
     <string name="settings_button_key_tester">Key Tester</string>
     <string name="settings_button_crash_reports">Crash Reports</string>
