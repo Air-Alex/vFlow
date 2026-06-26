@@ -28,7 +28,8 @@ object LocaleManager {
      */
     val SUPPORTED_LANGUAGES = mapOf(
         "zh" to "中文（简体）",
-        "en" to "English"
+        "en" to "English",
+        "ja" to "日本語"
     )
 
     /**
