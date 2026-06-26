@@ -1970,6 +1970,8 @@ class WorkflowEditorActivity : BaseActivity() {
     }
 
     private fun applyGeneratedWorkflow(workflow: Workflow) {
+        val generatedTriggers = workflow.triggers.orEmpty()
+        val generatedSteps = workflow.steps.orEmpty()
         val undoSnapshot = createEditorSnapshot()
         var undoRecorded = false
         fun recordGeneratedUndo() {
@@ -1996,15 +1998,15 @@ class WorkflowEditorActivity : BaseActivity() {
                     recordGeneratedUndo()
                     triggerSteps.clear()
                     actionSteps.clear()
-                    triggerSteps.addAll(workflow.triggers)
-                    actionSteps.addAll(workflow.steps)
+                    triggerSteps.addAll(generatedTriggers)
+                    actionSteps.addAll(generatedSteps)
                     recalculateAndNotify()
                     toast(R.string.editor_toast_ai_workflow_applied)
                 }
                 .setNeutralButton(R.string.editor_button_append_to_end) { _, _ ->
                     recordGeneratedUndo()
-                    triggerSteps.addAll(workflow.triggers)
-                    actionSteps.addAll(workflow.steps)
+                    triggerSteps.addAll(generatedTriggers)
+                    actionSteps.addAll(generatedSteps)
                     recalculateAndNotify()
                     toast(R.string.editor_toast_steps_appended)
                 }
@@ -2012,8 +2014,8 @@ class WorkflowEditorActivity : BaseActivity() {
                 .show()
         } else {
             recordGeneratedUndo()
-            triggerSteps.addAll(workflow.triggers)
-            actionSteps.addAll(workflow.steps)
+            triggerSteps.addAll(generatedTriggers)
+            actionSteps.addAll(generatedSteps)
             recalculateAndNotify()
             toast(R.string.editor_toast_ai_workflow_applied)
         }

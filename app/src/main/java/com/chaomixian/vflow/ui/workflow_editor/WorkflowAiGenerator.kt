@@ -6,6 +6,7 @@ import com.chaomixian.vflow.core.logging.DebugLogger
 import com.chaomixian.vflow.core.module.ModuleCategories
 import com.chaomixian.vflow.core.module.ModuleRegistry
 import com.chaomixian.vflow.core.module.ParameterType
+import com.chaomixian.vflow.core.workflow.WorkflowJsonImportParser
 import com.chaomixian.vflow.core.workflow.model.Workflow
 import com.google.gson.Gson
 import com.google.gson.JsonObject
@@ -197,7 +198,7 @@ object WorkflowAiGenerator {
                 }
 
                 val content = choices[0].asJsonObject.getAsJsonObject("message").get("content").asString
-                val workflow = gson.fromJson(content, Workflow::class.java)
+                val workflow = sanitizeGeneratedWorkflow(content)
 
                 Result.success(workflow)
 
@@ -205,5 +206,10 @@ object WorkflowAiGenerator {
                 Result.failure(e)
             }
         }
+    }
+
+    internal fun sanitizeGeneratedWorkflow(content: String): Workflow {
+        return WorkflowJsonImportParser(gson).parse(content).workflows.firstOrNull()
+            ?: throw IllegalArgumentException("AI returned invalid workflow JSON")
     }
 }
