@@ -2041,6 +2041,15 @@
     <string name="param_vflow_ui_component_text_key_name">ID (任意)</string>
     <string name="output_vflow_ui_component_text_component_name">VUiComponent オブジェクト（すべてのコンポーネント情報を含む）</string>
     <string name="output_vflow_ui_component_text_id_name">コンポーネント ID（後方互換）</string>
+    <string name="module_vflow_ui_component_listpicker_desc">ユーザーにオプションのリストから1つを選ばせます。</string>
+    <string name="module_vflow_ui_component_listpicker_name">リスト選択</string>
+    <string name="param_vflow_ui_component_listpicker_key_name">ID (変数名)</string>
+    <string name="param_vflow_ui_component_listpicker_label_name">ラベル</string>
+    <string name="param_vflow_ui_component_listpicker_options_name">オプション（1 行に 1 つ）</string>
+    <string name="param_vflow_ui_component_listpicker_default_value_name">デフォルト選択</string>
+    <string name="param_vflow_ui_component_listpicker_trigger_event_name">選択時にイベントを発火</string>
+    <string name="output_vflow_ui_component_listpicker_component_name">VUiComponent オブジェクト（すべてのコンポーネント情報を含む）</string>
+    <string name="output_vflow_ui_component_listpicker_id_name">コンポーネントの一意識別子</string>
     <string name="module_vflow_ui_float_end_desc">フローティングウィンドウのライフサイクルが終了します。</string>
     <string name="module_vflow_ui_float_end_name">フローティング終了</string>
     <string name="summary_vflow_ui_float_end">フローティング終了</string>
@@ -2702,6 +2711,8 @@
     <string name="summary_prefix_input_suffix">入力欄</string>
     <string name="summary_prefix_switch">スイッチ: </string>
     <string name="summary_prefix_switch_suffix">スイッチ</string>
+    <string name="summary_prefix_listpicker">リスト選択: </string>
+    <string name="summary_prefix_listpicker_suffix">リスト選択</string>
     <string name="summary_prefix_display_text">表示テキスト</string>
     <string name="button_select">選択</string>
     <string name="text_yes">はい</string>

@@ -87,6 +87,8 @@
     <string name="vtype_uicomponent_isbutton">Is button</string>
     <string name="vtype_uicomponent_isinput">Is input</string>
     <string name="vtype_uicomponent_isswitch">Is switch</string>
+    <string name="vtype_uicomponent_ispicker">Is list picker</string>
+    <string name="vtype_uicomponent_options">Options</string>
 
     <!-- Coordinate Properties -->
     <string name="vtype_coordinate_x">X coordinate</string>

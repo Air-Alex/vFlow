@@ -266,11 +266,12 @@ object ModuleRegistry {
         register(EndFloatWindowModule(), context)
 
 
-        // UI 组件 (文本 / 输入 / 按钮 / 开关)
+        // UI 组件 (文本 / 输入 / 按钮 / 开关 / 列表选择)
         register(UiTextModule(), context)
         register(UiInputModule(), context)
         register(UiButtonModule(), context)
         register(UiSwitchModule(), context)
+        register(UiListPickerModule(), context)
         register(ScreenFlashModule(), context)
 
         // 交互逻辑 (事件监听 / 更新 / 关闭 / 获取值)

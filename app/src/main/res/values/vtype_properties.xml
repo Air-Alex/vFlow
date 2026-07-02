@@ -87,6 +87,8 @@
     <string name="vtype_uicomponent_isbutton">是否按钮</string>
     <string name="vtype_uicomponent_isinput">是否输入框</string>
     <string name="vtype_uicomponent_isswitch">是否开关</string>
+    <string name="vtype_uicomponent_ispicker">是否列表选择</string>
+    <string name="vtype_uicomponent_options">选项</string>
 
     <!-- 坐标属性 -->
     <string name="vtype_coordinate_x">X 坐标</string>
