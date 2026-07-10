@@ -818,6 +818,7 @@
     <string name="text_turned_on">オンにした場合</string>
     <string name="text_turned_off">閉じたとき</string>
     <string name="text_add_new_item">新しいアイテムを追加</string>
+    <string name="overlay_ui_menu_choice_title">選択してください</string>
     <string name="button_click_select_image">クリックして画像を選択してください</string>
     <string name="text_workflow_to_call">呼び出すワークフロー</string>
     <string name="text_select_image_to_find">画面上で探したい写真を選択します</string>

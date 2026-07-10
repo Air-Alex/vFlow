@@ -874,6 +874,7 @@
     <string name="text_turned_on">开启时</string>
     <string name="text_turned_off">关闭时</string>
     <string name="text_add_new_item">添加新项目</string>
+    <string name="overlay_ui_menu_choice_title">请选择</string>
     <string name="button_click_select_image">点击选择图片</string>
     <string name="text_workflow_to_call">要调用的工作流</string>
     <string name="text_select_image_to_find">选择要在屏幕上查找的图片</string>
