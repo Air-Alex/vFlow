@@ -359,7 +359,7 @@
     <string name="workflow_list_sort_name">Name order</string>
     <string name="workflow_list_sort_recent_modified">Recently modified</string>
     <string name="workflow_list_sort_favorites_first">Favorites first</string>
-    <string name="workflow_list_menu_grid_view">Grid view</string>
+    <string name="workflow_list_menu_grid_view">Compact view</string>
     <string name="workflow_list_menu_list_view">List view</string>
     <string name="workflow_list_menu_backup_all">Back Up All Workflows</string>
     <string name="workflow_list_menu_import_restore">Import/Restore Workflows</string>

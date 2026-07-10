@@ -359,7 +359,7 @@
     <string name="workflow_list_sort_name">名称排序</string>
     <string name="workflow_list_sort_recent_modified">最近修改</string>
     <string name="workflow_list_sort_favorites_first">收藏优先</string>
-    <string name="workflow_list_menu_grid_view">两列布局</string>
+    <string name="workflow_list_menu_grid_view">紧凑布局</string>
     <string name="workflow_list_menu_list_view">列表布局</string>
     <string name="workflow_list_menu_backup_all">备份所有工作流</string>
     <string name="workflow_list_menu_import_restore">导入/恢复工作流</string>
