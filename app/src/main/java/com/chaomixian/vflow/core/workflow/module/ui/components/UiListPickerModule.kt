@@ -127,8 +127,9 @@ class UiListPickerModule : BaseUiComponentModule() {
          */
         fun parseOptions(raw: String): List<String> {
             if (raw.isBlank()) return emptyList()
-            return raw.split('\n')
-                .map { it.trim().replace("\\n", "\n") }
+            return raw.replace("\\n", "\n")
+                .split('\n')
+                .map { it.trim() }
                 .filter { it.isNotEmpty() }
         }
     }

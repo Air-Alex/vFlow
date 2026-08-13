@@ -58,7 +58,7 @@ class UiListPickerModuleTest {
     fun `parseOptions treats backslash-n as a newline marker`() {
         // 支持常见被 JSON 转义后的 \\n
         val parsed = UiListPickerModule.parseOptions("Apple\\nBanana\\nCherry")
-        assertEquals(listOf("Apple\nBanana\nCherry"), parsed)
+        assertEquals(listOf("Apple", "Banana", "Cherry"), parsed)
     }
 
     @Test
