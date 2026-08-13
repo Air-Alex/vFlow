@@ -2313,8 +2313,19 @@
     <string name="module_vflow_ui_component_text_name">Text Display</string>
     <string name="param_vflow_ui_component_text_content_name">Content</string>
     <string name="param_vflow_ui_component_text_key_name">ID (Optional)</string>
-    <string name="output_vflow_ui_component_text_component_name">VUiComponent object (contains all component information)</string>
-    <string name="output_vflow_ui_component_text_id_name">Component ID (for backward compatibility)</string>
+    <string name="output_vflow_ui_component_text_component_name">VUiComponent object (contains all component info)</string>
+    <string name="output_vflow_ui_component_text_id_name">Component ID (backward compatibility)</string>
+
+    <!-- vflow.ui.component_listpicker -->
+    <string name="module_vflow_ui_component_listpicker_desc">Let the user pick one value from a list of options.</string>
+    <string name="module_vflow_ui_component_listpicker_name">List Picker</string>
+    <string name="param_vflow_ui_component_listpicker_key_name">ID (Variable Name)</string>
+    <string name="param_vflow_ui_component_listpicker_label_name">Label</string>
+    <string name="param_vflow_ui_component_listpicker_options_name">Options (one per line)</string>
+    <string name="param_vflow_ui_component_listpicker_default_value_name">Default Selection</string>
+    <string name="param_vflow_ui_component_listpicker_trigger_event_name">Trigger Event on Selection</string>
+    <string name="output_vflow_ui_component_listpicker_component_name">VUiComponent object (contains all component info)</string>
+    <string name="output_vflow_ui_component_listpicker_id_name">Unique identifier of the component</string>
 
     <!-- vflow.ui.float_end -->
     <string name="module_vflow_ui_float_end_desc">Float window lifecycle end.</string>
@@ -3074,6 +3085,8 @@
     <string name="summary_prefix_input_suffix">Input</string>
     <string name="summary_prefix_switch">Switch: </string>
     <string name="summary_prefix_switch_suffix">Switch</string>
+    <string name="summary_prefix_listpicker">List Picker: </string>
+    <string name="summary_prefix_listpicker_suffix">List Picker</string>
     <string name="summary_prefix_display_text">Display text</string>
     <string name="button_select">Select</string>
     <string name="text_yes">Yes</string>

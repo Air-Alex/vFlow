@@ -2335,6 +2335,17 @@
     <string name="output_vflow_ui_component_text_component_name">VUiComponent 对象（包含所有组件信息）</string>
     <string name="output_vflow_ui_component_text_id_name">组件 ID（向后兼容）</string>
 
+    <!-- vflow.ui.component_listpicker -->
+    <string name="module_vflow_ui_component_listpicker_desc">让用户从一组选项中挑选一个值。</string>
+    <string name="module_vflow_ui_component_listpicker_name">列表选择</string>
+    <string name="param_vflow_ui_component_listpicker_key_name">ID (变量名)</string>
+    <string name="param_vflow_ui_component_listpicker_label_name">标签</string>
+    <string name="param_vflow_ui_component_listpicker_options_name">选项 (每行一项)</string>
+    <string name="param_vflow_ui_component_listpicker_default_value_name">默认选中</string>
+    <string name="param_vflow_ui_component_listpicker_trigger_event_name">选中时触发事件</string>
+    <string name="output_vflow_ui_component_listpicker_component_name">VUiComponent 对象（包含所有组件信息）</string>
+    <string name="output_vflow_ui_component_listpicker_id_name">组件唯一标识符</string>
+
     <!-- vflow.ui.float_end -->
     <string name="module_vflow_ui_float_end_desc">悬浮窗生命周期结束。</string>
     <string name="module_vflow_ui_float_end_name">结束悬浮窗</string>
@@ -3092,6 +3103,8 @@
     <string name="summary_prefix_input_suffix">输入框</string>
     <string name="summary_prefix_switch">开关: </string>
     <string name="summary_prefix_switch_suffix">开关</string>
+    <string name="summary_prefix_listpicker">列表选择: </string>
+    <string name="summary_prefix_listpicker_suffix">列表选择</string>
     <string name="summary_prefix_display_text">显示文本</string>
     <string name="button_select">选择</string>
     <string name="text_yes">是</string>

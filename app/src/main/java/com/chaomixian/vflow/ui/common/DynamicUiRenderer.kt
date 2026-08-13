@@ -14,6 +14,7 @@ import com.chaomixian.vflow.core.workflow.module.ui.model.UiElement
 import com.chaomixian.vflow.core.workflow.module.ui.model.UiElementType
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.CoroutineScope
@@ -57,6 +58,7 @@ object DynamicUiRenderer {
         viewsMap.forEach { (id, view) ->
             when (view) {
                 is TextInputEditText -> result[id] = view.text.toString()
+                is MaterialAutoCompleteTextView -> result[id] = view.text.toString()
                 is MaterialSwitch -> result[id] = view.isChecked
             }
         }
@@ -157,6 +159,47 @@ object DynamicUiRenderer {
                     viewToRegister = switch
                     switch
                 }
+                UiElementType.LIST_PICKER -> {
+                    val layout = TextInputLayout(context).apply {
+                        hint = element.label
+                        boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
+                        endIconMode = TextInputLayout.END_ICON_DROPDOWN_MENU
+                    }
+                    val picker = MaterialAutoCompleteTextView(context).apply {
+                        // 关闭输入校验，避免用户输入的内容与下拉项不匹配时报错
+                        threshold = 1
+                        val items = element.options
+                        val adapter = android.widget.ArrayAdapter(
+                            context,
+                            android.R.layout.simple_list_item_1,
+                            items
+                        )
+                        setAdapter(adapter)
+
+                        // 设置默认值
+                        val defaultIdx = items.indexOf(element.defaultValue)
+                        if (defaultIdx >= 0) {
+                            setText(element.defaultValue, false)
+                        } else if (items.isNotEmpty()) {
+                            setText(items.first(), false)
+                        }
+
+                        // 选中变化时同步 currentValue 到事件总线
+                        if (element.triggerEvent && lifecycleScope != null && sessionId != null) {
+                            setOnItemClickListener { _, _, position, _ ->
+                                val picked = items.getOrNull(position) ?: ""
+                                setText(picked, false)
+                                val allValues = collectAllValues()
+                                lifecycleScope.launch {
+                                    UiSessionBus.emitEvent(UiEvent(sessionId, element.id, "change", picked, allValues))
+                                }
+                            }
+                        }
+                    }
+                    layout.addView(picker)
+                    viewToRegister = picker
+                    layout
+                }
                 UiElementType.BUTTON -> {
                     val button = MaterialButton(context).apply {
                         text = element.label
@@ -197,6 +240,7 @@ object DynamicUiRenderer {
         viewsMap.forEach { (id, view) ->
             when (view) {
                 is TextInputEditText -> result[id] = view.text.toString()
+                is MaterialAutoCompleteTextView -> result[id] = view.text.toString()
                 is MaterialSwitch -> result[id] = view.isChecked
             }
         }

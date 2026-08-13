@@ -6,6 +6,7 @@ import com.chaomixian.vflow.core.types.EnhancedBaseVObject
 import com.chaomixian.vflow.core.types.VObject
 import com.chaomixian.vflow.core.types.VTypeRegistry
 import com.chaomixian.vflow.core.types.basic.VBoolean
+import com.chaomixian.vflow.core.types.basic.VList
 import com.chaomixian.vflow.core.types.basic.VNull
 import com.chaomixian.vflow.core.types.basic.VString
 import com.chaomixian.vflow.core.types.properties.PropertyRegistry
@@ -51,6 +52,7 @@ class VUiComponent(
         com.chaomixian.vflow.core.workflow.module.ui.model.UiElementType.BUTTON -> element.label
         com.chaomixian.vflow.core.workflow.module.ui.model.UiElementType.INPUT -> currentValue?.toString() ?: element.defaultValue
         com.chaomixian.vflow.core.workflow.module.ui.model.UiElementType.SWITCH -> currentValue?.toString() ?: element.defaultValue
+        com.chaomixian.vflow.core.workflow.module.ui.model.UiElementType.LIST_PICKER -> currentValue?.toString() ?: element.defaultValue
     }
 
     override fun asNumber(): Double? = null
@@ -107,6 +109,13 @@ class VUiComponent(
             })
             register("isswitch", returnType = VTypeRegistry.BOOLEAN, displayName = "是否开关", nameStringRes = R.string.vtype_uicomponent_isswitch, getter = { host ->
                 VBoolean((host as VUiComponent).element.type == com.chaomixian.vflow.core.workflow.module.ui.model.UiElementType.SWITCH)
+            })
+            register("ispicker", "ispick", "islistpicker", returnType = VTypeRegistry.BOOLEAN, displayName = "是否列表选择", nameStringRes = R.string.vtype_uicomponent_ispicker, getter = { host ->
+                VBoolean((host as VUiComponent).element.type == com.chaomixian.vflow.core.workflow.module.ui.model.UiElementType.LIST_PICKER)
+            })
+            register("options", "items", returnType = VTypeRegistry.LIST, displayName = "选项", nameStringRes = R.string.vtype_uicomponent_options, getter = { host ->
+                val options = (host as VUiComponent).element.options
+                VList(options.map { VString(it) })
             })
         }
 
