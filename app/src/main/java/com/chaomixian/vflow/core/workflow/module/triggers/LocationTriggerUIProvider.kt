@@ -69,9 +69,9 @@ class LocationTriggerUIProvider : ModuleUIProvider {
 
         // 恢复已有参数
         val event = currentParameters["event"] as? String ?: LocationTriggerModule.EVENT_ENTER
-        val latitude = currentParameters["latitude"] as? Double ?: 39.9042
-        val longitude = currentParameters["longitude"] as? Double ?: 116.4074
-        val radius = currentParameters["radius"] as? Double ?: 500.0
+        val latitude = (currentParameters["latitude"] as? Number)?.toDouble() ?: 39.9042
+        val longitude = (currentParameters["longitude"] as? Number)?.toDouble() ?: 116.4074
+        val radius = (currentParameters["radius"] as? Number)?.toDouble() ?: 500.0
         val locationName = currentParameters["location_name"] as? String ?: ""
 
         // 设置事件选择

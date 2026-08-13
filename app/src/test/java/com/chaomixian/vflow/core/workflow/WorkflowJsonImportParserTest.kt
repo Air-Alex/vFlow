@@ -180,4 +180,32 @@ class WorkflowJsonImportParserTest {
         assertNull(workflow.folderId)
         assertEquals(emptyMap<String, Any?>(), workflow.steps.single().parameters)
     }
+
+    @Test
+    fun `preserves numeric location trigger parameters as numbers`() {
+        val json = """
+            {
+              "id": "location-workflow",
+              "name": "位置工作流",
+              "triggers": [
+                {
+                  "moduleId": "vflow.trigger.location",
+                  "parameters": {
+                    "event": "enter",
+                    "latitude": 31.2304,
+                    "longitude": 121.4737,
+                    "radius": 750
+                  },
+                  "id": "location-trigger"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val parameters = parser.parse(json).workflows.single().triggers.single().parameters
+
+        assertEquals(31.2304, (parameters["latitude"] as Number).toDouble(), 0.000001)
+        assertEquals(121.4737, (parameters["longitude"] as Number).toDouble(), 0.000001)
+        assertEquals(750.0, (parameters["radius"] as Number).toDouble(), 0.000001)
+    }
 }

@@ -305,9 +305,9 @@ class LocationTriggerHandler : ListeningTriggerHandler() {
 
         listeningTriggers.forEach { trigger ->
             val config = trigger.parameters
-            val fenceLat = config["latitude"] as? Double ?: return@forEach
-            val fenceLon = config["longitude"] as? Double ?: return@forEach
-            val fenceRadius = config["radius"] as? Double ?: return@forEach
+            val fenceLat = (config["latitude"] as? Number)?.toDouble() ?: return@forEach
+            val fenceLon = (config["longitude"] as? Number)?.toDouble() ?: return@forEach
+            val fenceRadius = (config["radius"] as? Number)?.toDouble() ?: return@forEach
 
             val distance = calculateDistance(
                 location.latitude, location.longitude,
@@ -362,9 +362,9 @@ class LocationTriggerHandler : ListeningTriggerHandler() {
         val eventInput = LocationTriggerModule().getInputs().first { it.id == "event" }
         listeningTriggers.forEach { trigger ->
             val config = trigger.parameters
-            val fenceLat = config["latitude"] as? Double ?: return@forEach
-            val fenceLon = config["longitude"] as? Double ?: return@forEach
-            val fenceRadius = config["radius"] as? Double ?: return@forEach
+            val fenceLat = (config["latitude"] as? Number)?.toDouble() ?: return@forEach
+            val fenceLon = (config["longitude"] as? Number)?.toDouble() ?: return@forEach
+            val fenceRadius = (config["radius"] as? Number)?.toDouble() ?: return@forEach
             val configEvent = eventInput.normalizeEnumValueOrNull(config["event"] as? String) ?: return@forEach
 
             // 计算当前位置到围栏中心的距离

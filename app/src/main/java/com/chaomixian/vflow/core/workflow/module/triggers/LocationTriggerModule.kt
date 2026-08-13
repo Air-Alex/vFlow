@@ -116,9 +116,9 @@ class LocationTriggerModule : BaseModule() {
 
     override fun getSummary(context: Context, step: ActionStep): CharSequence {
         val event = EVENT_INPUT.normalizeEnumValue(step.parameters["event"] as? String) ?: EVENT_ENTER
-        val latitude = step.parameters["latitude"] as? Double ?: 0.0
-        val longitude = step.parameters["longitude"] as? Double ?: 0.0
-        val radius = step.parameters["radius"] as? Double ?: 500.0
+        val latitude = (step.parameters["latitude"] as? Number)?.toDouble() ?: 0.0
+        val longitude = (step.parameters["longitude"] as? Number)?.toDouble() ?: 0.0
+        val radius = (step.parameters["radius"] as? Number)?.toDouble() ?: 500.0
         val locationName = step.parameters["location_name"] as? String ?: ""
 
         val eventPill = PillUtil.createPillFromParam(event, getInputs().find { it.id == "event" }, isModuleOption = true)
