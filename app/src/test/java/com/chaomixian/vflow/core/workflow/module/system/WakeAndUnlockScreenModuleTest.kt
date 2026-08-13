@@ -45,4 +45,10 @@ class WakeAndUnlockScreenModuleTest {
         assertTrue(module.isAsciiUnlockPassword("P@55w0rd"))
         assertFalse(module.isAsciiUnlockPassword("密码123"))
     }
+
+    @Test
+    fun `password unlock does not swipe into biometric prompt`() {
+        assertFalse(module.shouldSwipeUnlock("0201"))
+        assertTrue(module.shouldSwipeUnlock(""))
+    }
 }

@@ -33,6 +33,10 @@ class WakeAndUnlockScreenModule : BaseModule() {
         const val INPUT_UNLOCK_PASSWORD = "unlock_password"
         private const val KEYCODE_ENTER = 66
         private const val DIGIT_KEYCODE_OFFSET = 7
+        private const val SCREEN_WAKE_SETTLE_DELAY_MS = 800L
+        private const val PASSWORD_KEY_INTERVAL_MS = 150L
+        private const val UNLOCK_STATE_POLL_INTERVAL_MS = 200L
+        private const val UNLOCK_STATE_POLL_COUNT = 15
     }
 
     override val id = "vflow.system.wake_and_unlock_screen"
@@ -119,7 +123,12 @@ class WakeAndUnlockScreenModule : BaseModule() {
 
             val shellSucceeded = wakeScreenViaShell(appContext, onProgress, unlockPassword)
 
-            delay(700)
+            if (shellSucceeded) {
+                for (attempt in 0 until UNLOCK_STATE_POLL_COUNT) {
+                    if (!keyguardManager.isKeyguardLocked) break
+                    delay(UNLOCK_STATE_POLL_INTERVAL_MS)
+                }
+            }
             val isScreenOn = powerManager.isInteractive
             val isLocked = keyguardManager.isKeyguardLocked
 
@@ -170,16 +179,18 @@ class WakeAndUnlockScreenModule : BaseModule() {
 
         onProgress(ProgressUpdate(appContext.getString(R.string.msg_vflow_system_wake_and_unlock_screen_done)))
         onProgress(ProgressUpdate(appContext.getString(R.string.msg_vflow_system_wake_and_unlock_screen_unlocking)))
-        ShellManager.execShellCommand(context, "input keyevent 82")
 
-        delay(300)
-        performSwipeUnlock(context)
-
-        if (unlockPassword.isBlank()) {
+        if (shouldSwipeUnlock(unlockPassword)) {
+            // Keep the legacy swipe-only path unchanged for older Android versions.
+            ShellManager.execShellCommand(context, "input keyevent 82")
+            delay(300)
+            performSwipeUnlock(context)
             return true
         }
 
-        delay(500)
+        // On Android 16, swiping the lock screen can switch to biometric auth.
+        // For PIN/password unlock, wait for the credential UI instead of swiping.
+        delay(SCREEN_WAKE_SETTLE_DELAY_MS)
         onProgress(ProgressUpdate(appContext.getString(R.string.msg_vflow_system_wake_and_unlock_screen_entering_password)))
 
         val commands = buildUnlockCommandSequence(unlockPassword)
@@ -192,7 +203,7 @@ class WakeAndUnlockScreenModule : BaseModule() {
             if (result.startsWith("Error:")) {
                 return false
             }
-            delay(80)
+            delay(PASSWORD_KEY_INTERVAL_MS)
         }
 
         return true
@@ -247,6 +258,10 @@ class WakeAndUnlockScreenModule : BaseModule() {
 
     internal fun isAsciiUnlockPassword(password: String): Boolean {
         return password.all { it.code in 32..126 }
+    }
+
+    internal fun shouldSwipeUnlock(unlockPassword: String): Boolean {
+        return unlockPassword.isBlank()
     }
 
     private fun digitToKeyCode(digit: Char): Int {
