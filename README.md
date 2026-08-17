@@ -147,7 +147,7 @@ vFlow 目前由两个主要部分组成：运行在 Android 应用进程内的�
 
 ## 🌟来颗 Star
 
-[![Star History Chart](https://api.star-history.com/svg?repos=ChaoMixian/vFlow&type=date&legend=top-left)](https://www.star-history.com/#ChaoMixian/vFlow&type=date&legend=top-left)
+[![Star History Chart](https://star-history.dera.page/svg?repos=ChaoMixian/vFlow&type=date&legend=top-left)](https://star-history.dera.page/#ChaoMixian/vFlow&type=date&legend=top-left)
 
 ## 📄 许可证
 
