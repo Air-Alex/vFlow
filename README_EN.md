@@ -147,7 +147,7 @@ Building a module usually comes down to a few familiar steps: choose the right c
 
 ## 🌟 Star the Project
 
-[![Star History Chart](https://api.star-history.com/svg?repos=ChaoMixian/vFlow&type=date&legend=top-left)](https://www.star-history.com/#ChaoMixian/vFlow&type=date&legend=top-left)
+[![Star History Chart](https://star-history.dera.page/svg?repos=ChaoMixian/vFlow&type=date&legend=top-left)](https://star-history.dera.page/#ChaoMixian/vFlow&type=date&legend=top-left)
 
 ## 📄 License
 
